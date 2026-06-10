@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { formatRelativeDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { ConversationListItem } from "@/lib/messages/queries";
-import { UserProfileLink } from "@/components/profile/UserProfileLink";
+import { ConversationParticipants } from "@/components/messages/ConversationParticipants";
 
 type ConversationListRowProps = {
   conversation: ConversationListItem;
@@ -75,10 +75,9 @@ export function ConversationListRow({ conversation }: ConversationListRowProps) 
           </div>
           <p className="mt-0.5 text-xs text-text-secondary">
             with{" "}
-            <UserProfileLink
-              username={conversation.otherUser.username}
-              className="font-semibold text-text-dark"
-              onClick={(event) => event.stopPropagation()}
+            <ConversationParticipants
+              participants={conversation.participants}
+              onParticipantClick={(event) => event.stopPropagation()}
             />
           </p>
           <p
@@ -88,13 +87,12 @@ export function ConversationListRow({ conversation }: ConversationListRowProps) 
             )}
           >
             {conversation.latestMessage &&
-              (conversation.latestMessage.senderUsername ===
-              conversation.otherUser.username ? (
-                <span className="text-text-secondary">
-                  {conversation.otherUser.username}:{" "}
-                </span>
-              ) : (
+              (conversation.latestMessage.isFromCurrentUser ? (
                 <span className="text-text-secondary">You: </span>
+              ) : (
+                <span className="text-text-secondary">
+                  {conversation.latestMessage.senderUsername}:{" "}
+                </span>
               ))}
             {preview}
           </p>

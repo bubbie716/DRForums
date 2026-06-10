@@ -1,11 +1,14 @@
 import { prisma } from "@/lib/prisma";
 
+export type ConversationParticipantUser = {
+  id: string;
+  username: string;
+};
+
 export type ConversationListItem = {
   id: string;
-  otherUser: {
-    id: string;
-    username: string;
-  };
+  participants: ConversationParticipantUser[];
+  isGroup: boolean;
   subject: string | null;
   latestMessage: {
     id: string;
@@ -13,6 +16,7 @@ export type ConversationListItem = {
     createdAt: Date;
     senderId: string;
     senderUsername: string;
+    isFromCurrentUser: boolean;
   } | null;
   unreadCount: number;
   updatedAt: Date;
@@ -103,18 +107,15 @@ export async function getConversationList(
     },
   });
 
-  const oneToOneParticipations = participations.filter(
-    (participation) => participation.conversation.participants.length === 2
-  );
-
-  const items = oneToOneParticipations
+  const items = participations
     .map((participation) => {
       const { conversation } = participation;
-      const otherParticipant = conversation.participants.find(
-        (participant) => participant.userId !== userId
-      );
+      const otherParticipants = conversation.participants
+        .filter((participant) => participant.userId !== userId)
+        .map((participant) => participant.user)
+        .sort((a, b) => a.username.localeCompare(b.username));
 
-      if (!otherParticipant) {
+      if (otherParticipants.length === 0) {
         return null;
       }
 
@@ -124,7 +125,8 @@ export async function getConversationList(
 
       return {
         id: conversation.id,
-        otherUser: otherParticipant.user,
+        participants: otherParticipants,
+        isGroup: otherParticipants.length > 1,
         subject:
           conversation.subject ?? firstMessage?.subject ?? null,
         latestMessage: latestMessage
@@ -134,6 +136,7 @@ export async function getConversationList(
               createdAt: latestMessage.createdAt,
               senderId: latestMessage.senderId,
               senderUsername: latestMessage.sender.username,
+              isFromCurrentUser: latestMessage.senderId === userId,
             }
           : null,
         unreadCount: countUnreadMessages(
@@ -202,15 +205,12 @@ export async function getConversationForUser(
     return null;
   }
 
-  if (participation.conversation.participants.length !== 2) {
-    return null;
-  }
+  const otherParticipants = participation.conversation.participants
+    .filter((participant) => participant.userId !== userId)
+    .map((participant) => participant.user)
+    .sort((a, b) => a.username.localeCompare(b.username));
 
-  const otherUser = participation.conversation.participants.find(
-    (participant) => participant.userId !== userId
-  )?.user;
-
-  if (!otherUser) {
+  if (otherParticipants.length === 0) {
     return null;
   }
 
@@ -218,7 +218,8 @@ export async function getConversationForUser(
 
   return {
     id: participation.conversation.id,
-    otherUser,
+    participants: otherParticipants,
+    isGroup: otherParticipants.length > 1,
     subject:
       participation.conversation.subject ?? firstMessage?.subject ?? null,
     messages: participation.conversation.messages,

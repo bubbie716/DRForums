@@ -34,18 +34,20 @@ async function restoreConversationForParticipants(conversationId: string) {
   });
 }
 
-async function sendMessageToRecipient(
+async function createGroupConversation(
   senderId: string,
-  recipientId: string,
+  recipientIds: string[],
   subject: string,
   content: string
 ): Promise<{ conversationId: string; messageId: string }> {
+  const participantIds = [senderId, ...recipientIds];
+
   return prisma.$transaction(async (tx) => {
     const createdConversation = await tx.conversation.create({
       data: {
         subject,
         participants: {
-          create: [{ userId: senderId }, { userId: recipientId }],
+          create: participantIds.map((userId) => ({ userId })),
         },
       },
       select: { id: true },
@@ -118,34 +120,23 @@ export async function sendMessage(
     return { success: false, error: "One or more recipients were not found." };
   }
 
-  const conversationIds: string[] = [];
+  const { conversationId, messageId } = await createGroupConversation(
+    user.id,
+    recipients.map((recipient) => recipient.id),
+    subjectValidation.value,
+    contentValidation.value
+  );
 
-  for (const recipient of recipients) {
-    const { conversationId, messageId } = await sendMessageToRecipient(
-      user.id,
-      recipient.id,
-      subjectValidation.value,
-      contentValidation.value
-    );
-
-    await createForumMentionsForContent({
-      content: contentValidation.value,
-      mentionerUserId: user.id,
-      source: MentionSource.DIRECT_MESSAGE,
-      messageId,
-    });
-
-    conversationIds.push(conversationId);
-  }
+  await createForumMentionsForContent({
+    content: contentValidation.value,
+    mentionerUserId: user.id,
+    source: MentionSource.DIRECT_MESSAGE,
+    messageId,
+  });
 
   revalidatePath("/messages");
   revalidatePath("/", "layout");
-
-  if (conversationIds.length === 1) {
-    redirect(`/messages/${conversationIds[0]}`);
-  }
-
-  redirect("/messages?tab=direct");
+  redirect(`/messages/${conversationId}`);
 }
 
 export async function replyToConversation(

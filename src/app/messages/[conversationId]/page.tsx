@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { UserProfileLink } from "@/components/profile/UserProfileLink";
+import { ConversationParticipants } from "@/components/messages/ConversationParticipants";
 import { getSessionUser } from "@/lib/auth";
 import {
   getConversationForUser,
@@ -51,9 +51,8 @@ export default async function ConversationPage({
             </h1>
             <p className="mt-2 text-sm text-text-secondary">
               with{" "}
-              <UserProfileLink
-                username={conversation.otherUser.username}
-                className="font-semibold text-text-dark"
+              <ConversationParticipants
+                participants={conversation.participants}
               />
             </p>
           </div>
