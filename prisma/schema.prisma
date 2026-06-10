@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model User {
+  id                String    @id @default(cuid())
+  username          String    @unique
+  passwordHash      String
+  role              Role      @default(USER)
+  minecraftUuid     String?   @unique
+  minecraftUsername String?
+  minecraftLinkedAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  threads                    Thread[]
+  posts                      Post[]
+  sessions                   Session[]
+  postReactions              PostReaction[]
+  messageReactions           MessageReaction[]
+  conversationParticipants   ConversationParticipant[]
+  sentMessages               Message[]
+
+  @@map("users")
+}
+
+enum ReactionType {
+  THUMBS_UP
+  HEART
+  FIRE
+  THUMBS_DOWN
+}
+
+model MinecraftVerificationCode {
+  id                String    @id @default(cuid())
+  code              String    @unique
+  minecraftUuid     String
+  minecraftUsername String
+  expiresAt         DateTime
+  usedAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@index([minecraftUuid])
+  @@index([expiresAt])
+  @@map("minecraft_verification_codes")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  forums Forum[]
+
+  @@map("categories")
+}
+
+model Forum {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  categoryId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  threads  Thread[]
+
+  @@index([categoryId])
+  @@index([slug])
+  @@map("forums")
+}
+
+model Thread {
+  id         String   @id @default(cuid())
+  title      String
+  slug       String   @unique
+  content    String
+  isPinned   Boolean  @default(false)
+  isLocked   Boolean  @default(false)
+  viewCount  Int      @default(0)
+  forumId    String
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  forum  Forum  @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  posts  Post[]
+
+  @@index([forumId])
+  @@index([authorId])
+  @@index([slug])
+  @@map("threads")
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  content   String
+  threadId  String
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  thread    Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions PostReaction[]
+
+  @@index([threadId])
+  @@index([authorId])
+  @@map("posts")
+}
+
+model PostReaction {
+  id        String       @id @default(cuid())
+  type      ReactionType
+  postId    String
+  userId    String
+  createdAt DateTime     @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, type])
+  @@index([postId])
+  @@map("post_reactions")
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime  @default(now())
+  lastReadAt     DateTime?
+  deletedAt      DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String
+  senderId       String
+  content        String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  conversation Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  reactions    MessageReaction[]
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+model MessageReaction {
+  id        String       @id @default(cuid())
+  type      ReactionType
+  messageId String
+  userId    String
+  createdAt DateTime     @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, type])
+  @@index([messageId])
+  @@map("message_reactions")
+}
