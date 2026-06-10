@@ -32,7 +32,7 @@ type PostCardProps = {
   };
   currentUserId?: string | null;
   isLoggedIn?: boolean;
-  isOriginalPost?: boolean;
+  isThreadOp?: boolean;
   canQuoteReply?: boolean;
 };
 
@@ -45,7 +45,7 @@ export function PostCard({
   post,
   currentUserId = null,
   isLoggedIn = false,
-  isOriginalPost = false,
+  isThreadOp = false,
   canQuoteReply = false,
 }: PostCardProps) {
   const reactionSummary = summarizePostReactions(
@@ -59,34 +59,57 @@ export function PostCard({
       className="bg-white border border-border rounded-2xl shadow-warm overflow-hidden scroll-mt-24"
     >
       <div className="flex flex-col sm:flex-row">
-        <aside className="sm:w-44 shrink-0 bg-surface border-b sm:border-b-0 sm:border-r border-border px-5 py-5 text-center sm:text-left">
-          <div className="profile-author-block flex flex-col items-center sm:items-start">
+        <aside className="sm:w-44 shrink-0 bg-surface border-b sm:border-b-0 sm:border-r border-border px-3 py-2 sm:px-5 sm:py-5 text-center sm:text-left">
+          <div className="flex sm:hidden items-center gap-2.5 min-w-0">
             <MinecraftHead
               seed={post.author.id}
               minecraftUsername={post.author.minecraftUsername}
               profileUsername={post.author.username}
-              size={48}
+              size={32}
             />
-            <UserProfileLink
-              username={post.author.username}
-              className="mt-3 font-bold text-text-dark"
-            />
+            <div className="profile-author-block flex items-center gap-2 min-w-0 flex-wrap">
+              <UserProfileLink
+                username={post.author.username}
+                className="text-sm font-bold text-text-dark truncate"
+              />
+              <RoleBadge role={post.author.role} />
+              {isThreadOp && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
+                  OP
+                </span>
+              )}
+            </div>
           </div>
-          <div className="mt-2 flex justify-center sm:justify-start">
-            <RoleBadge role={post.author.role} />
-          </div>
-          <p className="mt-3 text-xs text-text-secondary">
-            Joined {formatDate(post.author.createdAt).split(",")[0]}
-          </p>
-          {isOriginalPost && (
-            <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-accent">
-              OP
+
+          <div className="hidden sm:block">
+            <div className="profile-author-block flex flex-col items-center sm:items-start">
+              <MinecraftHead
+                seed={post.author.id}
+                minecraftUsername={post.author.minecraftUsername}
+                profileUsername={post.author.username}
+                size={48}
+              />
+              <UserProfileLink
+                username={post.author.username}
+                className="mt-3 font-bold text-text-dark"
+              />
+            </div>
+            <div className="mt-2 flex justify-center sm:justify-start">
+              <RoleBadge role={post.author.role} />
+            </div>
+            <p className="mt-3 text-xs text-text-secondary">
+              Joined {formatDate(post.author.createdAt).split(",")[0]}
             </p>
-          )}
+            {isThreadOp && (
+              <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-accent">
+                OP
+              </p>
+            )}
+          </div>
         </aside>
 
-        <div className="flex-1 px-6 py-5 min-w-0">
-          <div className="flex items-center justify-between gap-4 mb-4 pb-3 border-b border-border/60">
+        <div className="flex-1 px-4 py-4 sm:px-6 sm:py-5 min-w-0">
+          <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4 pb-2.5 sm:pb-3 border-b border-border/60">
             <time
               dateTime={post.createdAt.toISOString()}
               className="text-xs text-text-secondary"

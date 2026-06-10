@@ -36,7 +36,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
 
   return (
     <div className="bg-surface min-h-full">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 lg:py-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-14">
         <Breadcrumbs
           items={[
             { label: "Forums", href: "/", restoreScroll: true },
@@ -47,7 +47,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
 
         <div className="mt-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-extrabold text-text-dark">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-text-dark break-words">
               {forum.name}
             </h1>
             {forum.description && (
@@ -61,14 +61,14 @@ export default async function ForumPage({ params }: ForumPageProps) {
             (canPost(user) ? (
               <Link
                 href={`/forum/${forum.slug}/new`}
-                className="shrink-0 inline-flex items-center justify-center px-6 py-3 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 px-6 py-3 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               >
                 Create Thread
               </Link>
             ) : (
               <Link
                 href="/settings"
-                className="shrink-0 inline-flex items-center justify-center px-6 py-3 bg-yellow text-text-dark font-bold rounded-xl hover:shadow-warm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 px-6 py-3 bg-yellow text-text-dark font-bold rounded-xl hover:shadow-warm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               >
                 Link Minecraft to Post
               </Link>
@@ -76,7 +76,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
         </div>
 
         <div className="mt-8 bg-cream border border-border rounded-2xl shadow-warm overflow-hidden">
-          <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-3.5 bg-surface border-b border-border text-xs font-bold text-text-secondary uppercase tracking-widest">
+          <div className="hidden md:grid grid-cols-12 gap-4 px-4 md:px-6 py-3.5 bg-surface border-b border-border text-xs font-bold text-text-secondary uppercase tracking-widest">
             <div className="col-span-5">Thread</div>
             <div className="col-span-1 text-center">Replies</div>
             <div className="col-span-1 text-center">Views</div>

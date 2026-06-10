@@ -120,7 +120,7 @@ export function ComposeMessageForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white border border-border rounded-2xl shadow-warm p-6"
+      className="bg-white border border-border rounded-2xl shadow-warm p-4 md:p-6"
     >
       {error && (
         <div
@@ -242,12 +242,12 @@ export function ComposeMessageForm({
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-stretch md:justify-end">
         <button
           type="submit"
           disabled={loading}
           className={cn(
-            "px-6 py-2.5 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200",
+            "w-full md:w-auto min-h-11 px-6 py-2.5 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200",
             loading && "opacity-60"
           )}
         >

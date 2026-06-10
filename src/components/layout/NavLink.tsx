@@ -8,30 +8,43 @@ type NavLinkProps = {
   href: string;
   children: React.ReactNode;
   exact?: boolean;
+  stacked?: boolean;
+  onNavigate?: () => void;
 };
 
-export function NavLink({ href, children, exact = false }: NavLinkProps) {
+export function NavLink({
+  href,
+  children,
+  exact = false,
+  stacked = false,
+  onNavigate,
+}: NavLinkProps) {
   const pathname = usePathname();
   const isActive = exact ? pathname === href : pathname.startsWith(href);
 
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className={cn(
-        "group/nav relative px-5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200",
+        stacked
+          ? "flex items-center min-h-11 px-4 py-3 text-base font-semibold rounded-xl transition-all duration-200"
+          : "group/nav relative inline-flex items-center min-h-11 px-5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200",
         isActive
-          ? "text-accent hover:bg-hover"
+          ? "text-accent bg-yellow/30"
           : "text-text-secondary hover:text-accent hover:bg-hover"
       )}
     >
       {children}
-      <span
-        className={cn(
-          "absolute bottom-0 left-5 right-5 h-[3px] bg-gradient-orange rounded-full transition-opacity duration-200",
-          isActive ? "opacity-100" : "opacity-0 group-hover/nav:opacity-100"
-        )}
-        aria-hidden="true"
-      />
+      {!stacked && (
+        <span
+          className={cn(
+            "absolute bottom-0 left-5 right-5 h-[3px] bg-gradient-orange rounded-full transition-opacity duration-200",
+            isActive ? "opacity-100" : "opacity-0 group-hover/nav:opacity-100"
+          )}
+          aria-hidden="true"
+        />
+      )}
     </Link>
   );
 }

@@ -8,11 +8,11 @@ type CategorySectionProps = {
 export function CategorySection({ category }: CategorySectionProps) {
   return (
     <section className="bg-cream border border-border rounded-2xl shadow-warm overflow-hidden">
-      <div className="px-7 py-6 flex items-center justify-between gap-6 border-b border-border bg-gradient-to-r from-cream via-surface to-yellow/20">
-        <div className="flex items-center gap-5 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-orange flex items-center justify-center text-white shrink-0 shadow-warm">
+      <div className="px-4 md:px-7 py-4 md:py-6 flex items-center justify-between gap-4 md:gap-6 border-b border-border bg-gradient-to-r from-cream via-surface to-yellow/20">
+        <div className="flex items-center gap-3 md:gap-5 min-w-0">
+          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-orange flex items-center justify-center text-white shrink-0 shadow-warm">
             <svg
-              className="w-6 h-6"
+              className="w-5 h-5 md:w-6 md:h-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -26,13 +26,13 @@ export function CategorySection({ category }: CategorySectionProps) {
               />
             </svg>
           </div>
-          <h2 className="font-extrabold text-text-dark text-xl min-w-0">
+          <h2 className="font-extrabold text-text-dark text-lg md:text-xl min-w-0 break-words">
             {category.name}
           </h2>
         </div>
       </div>
 
-      <div className="hidden sm:grid grid-cols-12 gap-4 px-7 py-3.5 bg-surface border-b border-border text-xs font-bold text-text-secondary uppercase tracking-widest">
+      <div className="hidden md:grid grid-cols-12 gap-4 px-4 md:px-7 py-3.5 bg-surface border-b border-border text-xs font-bold text-text-secondary uppercase tracking-widest">
         <div className="col-span-5">Title</div>
         <div className="col-span-1 text-center">Threads</div>
         <div className="col-span-1 text-center">Posts</div>
@@ -44,7 +44,7 @@ export function CategorySection({ category }: CategorySectionProps) {
           <ForumRow key={forum.id} forum={forum} />
         ))
       ) : (
-        <div className="px-7 py-14 text-center text-text-secondary text-sm">
+        <div className="px-4 md:px-7 py-10 md:py-14 text-center text-text-secondary text-sm">
           No forums in this category yet.
         </div>
       )}

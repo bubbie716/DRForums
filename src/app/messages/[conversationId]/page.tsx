@@ -37,16 +37,16 @@ export default async function ConversationPage({
   return (
     <div className="bg-surface min-h-full">
       <ConversationReadMarker conversationId={conversationId} />
-      <div className="max-w-4xl mx-auto px-6 lg:px-8 py-10 lg:py-14">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-14">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="min-w-0">
             <Link
               href="/messages?tab=direct"
               className="inline-flex items-center text-sm font-semibold text-text-secondary hover:text-accent transition-colors"
             >
               ← Back to Inbox
             </Link>
-            <h1 className="mt-3 text-2xl font-extrabold text-text-dark">
+            <h1 className="mt-3 text-xl sm:text-2xl font-extrabold text-text-dark break-words">
               {conversation.subject ?? "Untitled conversation"}
             </h1>
             <p className="mt-2 text-sm text-text-secondary">

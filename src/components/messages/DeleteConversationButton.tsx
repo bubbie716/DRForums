@@ -36,7 +36,7 @@ export function DeleteConversationButton({
       type="button"
       onClick={handleDelete}
       disabled={loading}
-      className="px-4 py-2 text-sm font-semibold text-text-secondary border border-border rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 disabled:opacity-60"
+      className="w-full sm:w-auto min-h-11 px-4 py-2 text-sm font-semibold text-text-secondary border border-border rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-200 disabled:opacity-60"
     >
       {loading ? "Deleting…" : "Delete"}
     </button>

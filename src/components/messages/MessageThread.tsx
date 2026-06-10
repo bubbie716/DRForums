@@ -42,7 +42,7 @@ export function MessageThread({
 }: MessageThreadProps) {
   if (messages.length === 0) {
     return (
-      <div className="bg-white border border-border rounded-2xl shadow-warm px-8 py-12 text-center text-text-secondary">
+      <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-8 py-12 text-center text-text-secondary">
         No messages in this conversation yet.
       </div>
     );
@@ -64,7 +64,7 @@ export function MessageThread({
             key={message.id}
             id={`message-${message.id}`}
             className={cn(
-              "bg-white border border-border rounded-2xl shadow-warm px-6 py-5 scroll-mt-24",
+              "bg-white border border-border rounded-2xl shadow-warm px-4 py-4 md:px-6 md:py-5 scroll-mt-24",
               isOwnMessage && "border-accent/20 bg-yellow/10"
             )}
           >

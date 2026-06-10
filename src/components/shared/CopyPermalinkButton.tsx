@@ -54,7 +54,7 @@ export function CopyPermalinkButton({
         type="button"
         onClick={handleCopy}
         aria-label={label}
-        className="inline-flex shrink-0 items-center justify-center w-7 h-7 rounded-lg text-text-secondary hover:text-accent hover:bg-hover transition-colors"
+        className="inline-flex shrink-0 items-center justify-center min-h-11 min-w-11 rounded-lg text-text-secondary hover:text-accent hover:bg-hover transition-colors"
       >
         <svg
           viewBox="0 0 20 20"

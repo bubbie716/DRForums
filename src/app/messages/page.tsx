@@ -48,10 +48,10 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
 
   return (
     <div className="bg-surface min-h-full">
-      <div className="max-w-6xl mx-auto px-6 lg:px-8 py-10 lg:py-14">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-14">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold text-text-dark">Messages</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-text-dark">Messages</h1>
             <p className="text-text-secondary mt-1">
               {isDirectTab
                 ? "Private conversations with forum members"
@@ -61,7 +61,7 @@ export default async function MessagesPage({ searchParams }: MessagesPageProps) 
           {isDirectTab && (
             <Link
               href="/messages/new"
-              className="inline-flex items-center justify-center px-6 py-2.5 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              className="w-full sm:w-auto inline-flex items-center justify-center min-h-11 px-6 py-2.5 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
             >
               Compose
             </Link>

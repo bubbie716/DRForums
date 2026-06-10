@@ -25,13 +25,13 @@ export default async function ForumIndexPage() {
       <HeroSection />
 
       <div id="forums" className="bg-surface scroll-mt-20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-14 lg:py-20">
-          <div className="mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 lg:py-20">
+          <div className="mb-8 md:mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div className="min-w-0">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent mb-3">
                 Community
               </p>
-              <h2 className="text-3xl font-extrabold text-text-dark">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-text-dark">
                 Explore the Forums
               </h2>
               <p className="text-text-secondary mt-3 max-w-2xl text-lg leading-relaxed">

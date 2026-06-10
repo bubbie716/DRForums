@@ -87,11 +87,11 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
         <p className="text-xs text-text-secondary">Minimum 10 characters.</p>
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
+      <div className="flex justify-stretch md:justify-end gap-3 pt-2">
         <button
           type="submit"
           disabled={loading || !forumSlug}
-          className="px-8 py-3 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+          className="w-full md:w-auto min-h-11 px-8 py-3 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
         >
           {loading ? "Posting…" : "Post"}
         </button>

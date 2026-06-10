@@ -57,7 +57,7 @@ export function PostButton({
         onClick={() => setOpen(true)}
         disabled={!hasForums}
         className={cn(
-          "shrink-0 px-8 py-3 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200",
+          "w-full sm:w-auto shrink-0 min-h-11 px-8 py-3 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200",
           !hasForums && "opacity-60 cursor-not-allowed"
         )}
       >
@@ -75,7 +75,7 @@ export function PostButton({
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-post-title"
-            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden bg-white border border-border rounded-2xl shadow-warm-lg p-6 lg:p-8 [-webkit-overflow-scrolling:touch]"
+            className="w-full max-w-2xl max-h-[90dvh] overflow-y-auto overflow-x-hidden bg-white border border-border rounded-2xl shadow-warm-lg p-4 sm:p-6 lg:p-8 [-webkit-overflow-scrolling:touch]"
           >
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
@@ -93,7 +93,7 @@ export function PostButton({
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="Close"
-                className="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-xl text-text-secondary hover:bg-hover hover:text-text-dark transition-colors"
+                className="shrink-0 inline-flex items-center justify-center min-h-11 min-w-11 rounded-xl text-text-secondary hover:bg-hover hover:text-text-dark transition-colors"
               >
                 <svg
                   viewBox="0 0 20 20"

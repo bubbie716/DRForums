@@ -28,7 +28,7 @@ export function QuoteReplyButton({
           replyToMessageId,
         })
       }
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-text-secondary hover:text-accent hover:bg-hover transition-colors"
+      className="inline-flex items-center gap-1.5 min-h-11 px-3 py-2 rounded-lg text-xs font-semibold text-text-secondary hover:text-accent hover:bg-hover transition-colors"
     >
       <svg
         viewBox="0 0 20 20"

@@ -35,7 +35,7 @@ export default function RootLayout({
         <ForumScrollPersistence />
         <ForumScrollRestore />
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>
         <Footer />
       </body>
     </html>

@@ -49,7 +49,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
   return (
     <div className="bg-surface min-h-full">
       <ThreadViewRecorder threadId={thread.id} />
-      <div className="max-w-5xl mx-auto px-6 lg:px-8 py-10 lg:py-14">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-14">
         <Breadcrumbs
           items={[
             { label: "Forums", href: "/", restoreScroll: true },
@@ -62,11 +62,11 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
           ]}
         />
 
-        <div className="mt-6 bg-white border border-border rounded-2xl shadow-warm px-6 py-5">
+        <div className="mt-6 bg-white border border-border rounded-2xl shadow-warm px-4 py-4 md:px-6 md:py-5">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-extrabold text-text-dark">
+                <h1 className="text-xl sm:text-2xl font-extrabold text-text-dark break-words">
                   {thread.title}
                 </h1>
                 {thread.isPinned && (
@@ -113,7 +113,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
                 post={thread.posts[0]}
                 currentUserId={user?.id}
                 isLoggedIn={!!user}
-                isOriginalPost
+                isThreadOp={thread.posts[0].author.id === thread.author.id}
                 canQuoteReply={canQuoteReply}
               />
             )}
@@ -131,6 +131,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
                     post={post}
                     currentUserId={user?.id}
                     isLoggedIn={!!user}
+                    isThreadOp={post.author.id === thread.author.id}
                     canQuoteReply={canQuoteReply}
                   />
                 ))}
@@ -140,7 +141,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
 
           <div className="mt-8">
             {thread.isLocked ? (
-              <div className="bg-white border border-border rounded-2xl shadow-warm px-6 py-8 text-center">
+              <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-6 py-8 text-center">
                 <p className="text-text-secondary font-medium">
                   This thread is locked. No new replies can be posted.
                 </p>
@@ -152,7 +153,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
                 <MinecraftLinkRequiredNotice action="post replies" />
               )
             ) : (
-              <div className="bg-white border border-border rounded-2xl shadow-warm px-6 py-8 text-center">
+              <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-6 py-8 text-center">
                 <p className="text-text-secondary">
                   <Link
                     href="/login"

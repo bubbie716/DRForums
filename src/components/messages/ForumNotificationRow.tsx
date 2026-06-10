@@ -97,7 +97,7 @@ export function ForumNotificationRow({
       onClick={() => void openNotification()}
       onKeyDown={handleKeyDown}
       className={cn(
-        "block px-6 py-5 transition-colors duration-200 hover:bg-hover cursor-pointer",
+        "block px-4 md:px-6 py-4 md:py-5 transition-colors duration-200 hover:bg-hover cursor-pointer",
         isUnread && "bg-yellow/15 hover:bg-yellow/25"
       )}
     >

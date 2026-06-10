@@ -15,14 +15,14 @@ export function ConversationList({
 }: ConversationListProps) {
   if (conversations.length === 0) {
     return (
-      <div className="bg-white border border-border rounded-2xl shadow-warm px-8 py-16 text-center">
+      <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-8 py-12 md:py-16 text-center">
         <h3 className="text-lg font-bold text-text-dark">{emptyTitle}</h3>
         <p className="text-text-secondary mt-2 max-w-md mx-auto">
           {emptyDescription}
         </p>
         <Link
           href="/messages/new"
-          className="inline-block mt-6 px-6 py-2.5 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg transition-all duration-200"
+          className="inline-flex items-center justify-center min-h-11 mt-6 px-6 py-2.5 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg transition-all duration-200"
         >
           Compose Message
         </Link>

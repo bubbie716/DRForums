@@ -15,7 +15,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center px-6 py-20 min-h-[calc(100vh-12rem)] bg-gradient-hero">
+    <div className="flex items-center justify-center px-4 sm:px-6 py-10 sm:py-20 min-h-[calc(100dvh-8rem)] md:min-h-[calc(100dvh-12rem)] bg-gradient-hero">
       <LoginForm />
     </div>
   );

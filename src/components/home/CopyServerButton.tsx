@@ -27,7 +27,7 @@ export function CopyServerButton() {
   }
 
   return (
-    <div className="relative inline-flex">
+    <div className="relative w-full sm:w-auto">
       {copied && (
         <span
           role="status"
@@ -40,7 +40,7 @@ export function CopyServerButton() {
       <button
         type="button"
         onClick={handleCopy}
-        className="inline-flex items-center gap-2.5 px-8 py-4 bg-yellow text-text-dark font-bold rounded-2xl cursor-pointer hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+        className="inline-flex w-full sm:w-auto min-h-11 items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-yellow text-text-dark font-bold rounded-2xl cursor-pointer hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
       >
         <svg
           className="w-5 h-5 text-accent shrink-0"
