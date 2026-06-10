@@ -18,7 +18,7 @@ export function Footer() {
                 District Roleplay
               </p>
               <p className="text-sm text-text-secondary mt-0.5">
-                Municipal Forum
+                Community Forum
               </p>
             </div>
           </div>

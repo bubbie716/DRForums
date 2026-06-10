@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createReply } from "@/lib/forum/actions";
-import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
+import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { useQuoteReply } from "@/components/shared/QuoteReplyContext";
 
 type ReplyFormProps = {
   threadId: string;
@@ -11,16 +12,26 @@ type ReplyFormProps = {
 
 export function ReplyForm({ threadId }: ReplyFormProps) {
   const router = useRouter();
+  const { registerReplyHandler } = useQuoteReply();
   const [content, setContent] = useState("");
+  const [replyToPostId, setReplyToPostId] = useState<string | undefined>();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    return registerReplyHandler(({ quoteText, replyToPostId: postId }) => {
+      setContent(quoteText);
+      setReplyToPostId(postId);
+      setError("");
+    });
+  }, [registerReplyHandler]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = await createReply(threadId, content);
+    const result = await createReply(threadId, content, replyToPostId);
 
     if (!result.success) {
       setError(result.error);
@@ -29,12 +40,17 @@ export function ReplyForm({ threadId }: ReplyFormProps) {
     }
 
     setContent("");
+    setReplyToPostId(undefined);
     setLoading(false);
     router.refresh();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-border rounded-2xl shadow-warm p-6">
+    <form
+      id="reply-form"
+      onSubmit={handleSubmit}
+      className="bg-white border border-border rounded-2xl shadow-warm p-6"
+    >
       <h3 className="font-bold text-text-dark mb-4">Post a Reply</h3>
 
       {error && (
@@ -46,12 +62,16 @@ export function ReplyForm({ threadId }: ReplyFormProps) {
         </div>
       )}
 
-      <AutoResizeTextarea
+      <MentionTextarea
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={(event) => {
+          setContent(event.target.value);
+          if (replyToPostId) {
+            setReplyToPostId(undefined);
+          }
+        }}
         rows={4}
-        required
-        placeholder="Write your reply…"
+        placeholder="Write your reply… Use @ to mention someone"
       />
 
       <div className="mt-4 flex justify-end">

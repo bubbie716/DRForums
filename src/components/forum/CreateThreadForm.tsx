@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { createThread } from "@/lib/forum/actions";
-import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
+import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { formInputClassName } from "@/components/ui/fieldStyles";
 
 type CreateThreadFormProps = {
   forumSlug: string;
@@ -43,12 +45,7 @@ export function CreateThreadForm({ forumSlug }: CreateThreadFormProps) {
 
       <div className="space-y-6">
         <div className="space-y-2">
-          <label
-            htmlFor="title"
-            className="block text-sm font-bold text-text-dark"
-          >
-            Thread Title
-          </label>
+          <FieldLabel>Thread Title</FieldLabel>
           <input
             id="title"
             type="text"
@@ -58,26 +55,21 @@ export function CreateThreadForm({ forumSlug }: CreateThreadFormProps) {
             minLength={5}
             maxLength={200}
             placeholder="What should we add to City Hall?"
-            className="w-full px-4 py-3 rounded-xl bg-cream border border-border text-text-dark placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+            className={formInputClassName}
           />
           <p className="text-xs text-text-secondary">Minimum 5 characters.</p>
         </div>
 
         <div className="space-y-2">
-          <label
-            htmlFor="content"
-            className="block text-sm font-bold text-text-dark"
-          >
-            Content
-          </label>
-          <AutoResizeTextarea
+          <FieldLabel>Content</FieldLabel>
+          <MentionTextarea
             id="content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={10}
             required
             minLength={10}
-            placeholder="Share your thoughts…"
+            placeholder="Share your thoughts… Use @ to mention someone"
           />
           <p className="text-xs text-text-secondary">Minimum 10 characters.</p>
         </div>

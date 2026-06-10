@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { UserProfileLink } from "@/components/profile/UserProfileLink";
 import { getSessionUser } from "@/lib/auth";
 import {
   getConversationForUser,
@@ -9,6 +10,7 @@ import { MessageThread } from "@/components/messages/MessageThread";
 import { ConversationReplyForm } from "@/components/messages/ConversationReplyForm";
 import { DeleteConversationButton } from "@/components/messages/DeleteConversationButton";
 import { ConversationReadMarker } from "@/components/messages/ConversationReadMarker";
+import { QuoteReplyProvider } from "@/components/shared/QuoteReplyContext";
 
 type ConversationPageProps = {
   params: Promise<{ conversationId: string }>;
@@ -39,31 +41,35 @@ export default async function ConversationPage({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <Link
-              href="/messages"
+              href="/messages?tab=direct"
               className="inline-flex items-center text-sm font-semibold text-text-secondary hover:text-accent transition-colors"
             >
               ← Back to Inbox
             </Link>
             <h1 className="mt-3 text-2xl font-extrabold text-text-dark">
-              Conversation with{" "}
-              <Link
-                href={`/profile/${conversation.otherUser.username}`}
-                className="text-accent hover:text-accent-dark transition-colors"
-              >
-                {conversation.otherUser.username}
-              </Link>
+              {conversation.subject ?? "Untitled conversation"}
             </h1>
+            <p className="mt-2 text-sm text-text-secondary">
+              with{" "}
+              <UserProfileLink
+                username={conversation.otherUser.username}
+                className="font-semibold text-text-dark"
+              />
+            </p>
           </div>
           <DeleteConversationButton conversationId={conversation.id} />
         </div>
 
-        <div className="mt-8 space-y-6">
-          <MessageThread
-            messages={conversation.messages}
-            currentUserId={user.id}
-          />
-          <ConversationReplyForm conversationId={conversation.id} />
-        </div>
+        <QuoteReplyProvider>
+          <div className="mt-8 space-y-6">
+            <MessageThread
+              conversationId={conversation.id}
+              messages={conversation.messages}
+              currentUserId={user.id}
+            />
+            <ConversationReplyForm conversationId={conversation.id} />
+          </div>
+        </QuoteReplyProvider>
       </div>
     </div>
   );

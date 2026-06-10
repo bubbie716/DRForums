@@ -39,7 +39,7 @@ export default async function ForumPage({ params }: ForumPageProps) {
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-10 lg:py-14">
         <Breadcrumbs
           items={[
-            { label: "Forums", href: "/" },
+            { label: "Forums", href: "/", restoreScroll: true },
             { label: forum.category.name },
             { label: forum.name },
           ]}

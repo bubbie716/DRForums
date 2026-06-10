@@ -49,7 +49,7 @@ export function Logo({
             District Roleplay
           </div>
           <div className="text-xs text-text-secondary -mt-0.5">
-            Municipal Forum
+            Community Forum
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { calculateReactionRatioFromReactions } from "@/lib/forum/reactions";
+import { calculateReactionRatioFromPostReactions } from "@/lib/forum/reactions";
 
 export type LatestPost = {
   id: string;
@@ -274,8 +274,9 @@ export async function getPublicProfile(username: string) {
   };
 }
 
+/** Profile reaction ratio from forum posts only; DM message reactions are excluded. */
 export async function getUserReactionRatio(userId: string): Promise<number> {
-  const reactions = await prisma.postReaction.findMany({
+  const postReactions = await prisma.postReaction.findMany({
     where: {
       post: { authorId: userId },
       userId: { not: userId },
@@ -283,7 +284,7 @@ export async function getUserReactionRatio(userId: string): Promise<number> {
     select: { type: true, postId: true, userId: true },
   });
 
-  return calculateReactionRatioFromReactions(reactions);
+  return calculateReactionRatioFromPostReactions(postReactions);
 }
 
 export async function getUserRecentPosts(userId: string, limit = 15) {

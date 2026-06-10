@@ -52,7 +52,7 @@ export function ThreadRow({ thread }: ThreadRowProps) {
             <div className="min-w-0">
               <Link
                 href={`/thread/${thread.id}`}
-                className="font-bold text-text-dark hover:text-accent transition-colors line-clamp-2"
+                className="forum-title-link inline-block font-bold text-text-dark transition-colors duration-200 line-clamp-2"
               >
                 {thread.title}
               </Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formInputLgClassName } from "@/components/ui/fieldStyles";
 import { cn } from "@/lib/utils";
 
 type PasswordInputProps = {
@@ -37,7 +38,7 @@ export function PasswordInput({
         minLength={minLength}
         value={value}
         onChange={onChange}
-        className="w-full px-4 py-3.5 pr-12 rounded-xl bg-cream border border-border text-text-dark placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+        className={cn(formInputLgClassName, "pr-12")}
         placeholder={placeholder}
       />
       <button

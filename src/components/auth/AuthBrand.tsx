@@ -15,7 +15,7 @@ export function AuthBrand() {
       <h1 className="mt-5 text-2xl font-extrabold text-text-dark tracking-tight">
         District Roleplay
       </h1>
-      <p className="text-sm text-text-secondary mt-1">Municipal Forum</p>
+      <p className="text-sm text-text-secondary mt-1">Community Forum</p>
     </Link>
   );
 }

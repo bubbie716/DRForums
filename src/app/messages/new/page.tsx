@@ -23,7 +23,7 @@ export default async function NewMessagePage({
     <div className="bg-surface min-h-full">
       <div className="max-w-3xl mx-auto px-6 lg:px-8 py-10 lg:py-14">
         <Link
-          href="/messages"
+          href="/messages?tab=direct"
           className="inline-flex items-center text-sm font-semibold text-text-secondary hover:text-accent transition-colors"
         >
           ← Back to Inbox

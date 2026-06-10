@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "./AuthCard";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import { formInputLgClassName } from "@/components/ui/fieldStyles";
 import { PasswordInput } from "./PasswordInput";
 
 export function RegisterForm() {
@@ -75,12 +77,7 @@ export function RegisterForm() {
         )}
 
         <div className="space-y-2">
-          <label
-            htmlFor="username"
-            className="block text-sm font-bold text-text-dark"
-          >
-            Username
-          </label>
+          <FieldLabel>Username</FieldLabel>
           <input
             id="username"
             name="username"
@@ -89,7 +86,7 @@ export function RegisterForm() {
             required
             value={username}
             onChange={(e) => setUsername(e.target.value.toLowerCase())}
-            className="w-full px-4 py-3.5 rounded-xl bg-cream border border-border text-text-dark placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+            className={formInputLgClassName}
             placeholder="your_username"
           />
           <p className="text-xs text-text-secondary">
@@ -98,12 +95,7 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <label
-            htmlFor="password"
-            className="block text-sm font-bold text-text-dark"
-          >
-            Password
-          </label>
+          <FieldLabel>Password</FieldLabel>
           <PasswordInput
             id="password"
             name="password"
@@ -117,12 +109,7 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <label
-            htmlFor="confirmPassword"
-            className="block text-sm font-bold text-text-dark"
-          >
-            Confirm password
-          </label>
+          <FieldLabel>Confirm password</FieldLabel>
           <PasswordInput
             id="confirmPassword"
             name="confirmPassword"

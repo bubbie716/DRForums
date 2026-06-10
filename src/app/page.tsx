@@ -1,7 +1,10 @@
 import { getForumIndex } from "@/lib/forum/queries";
 import { CategorySection } from "@/components/forum/CategorySection";
+import { PostButton } from "@/components/forum/PostButton";
 import { HeroSection } from "@/components/home/HeroSection";
-import { getSessionUser } from "@/lib/auth";
+import { ForumScrollRestore } from "@/components/forum/ForumScrollRestore";
+import { ForumScrollTracker } from "@/components/forum/ForumScrollTracker";
+import { canPost, getSessionUser } from "@/lib/auth";
 
 export default async function ForumIndexPage() {
   const [categories, user] = await Promise.all([
@@ -9,23 +12,42 @@ export default async function ForumIndexPage() {
     getSessionUser(),
   ]);
 
+  const postCategories = categories
+    .map((category) => ({
+      name: category.name,
+      forums: category.forums.map((forum) => ({
+        slug: forum.slug,
+        name: forum.name,
+      })),
+    }))
+    .filter((category) => category.forums.length > 0);
+
   return (
     <>
-      <HeroSection isLoggedIn={!!user} />
+      <ForumScrollTracker />
+      <ForumScrollRestore />
+      <HeroSection />
 
-      <div id="forums" className="bg-surface">
+      <div id="forums" className="bg-surface scroll-mt-20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8 py-14 lg:py-20">
-          <div className="mb-12">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent mb-3">
-              Community
-            </p>
-            <h2 className="text-3xl font-extrabold text-text-dark">
-              Explore the Forums
-            </h2>
-            <p className="text-text-secondary mt-3 max-w-2xl text-lg leading-relaxed">
-              Browse departments, city services, and community boards. Select a
-              forum to view threads and join the discussion.
-            </p>
+          <div className="mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent mb-3">
+                Community
+              </p>
+              <h2 className="text-3xl font-extrabold text-text-dark">
+                Explore the Forums
+              </h2>
+              <p className="text-text-secondary mt-3 max-w-2xl text-lg leading-relaxed">
+                Browse departments, city services, and community boards. Select
+                a forum to view threads and join the discussion.
+              </p>
+            </div>
+            <PostButton
+              categories={postCategories}
+              isLoggedIn={!!user}
+              canPost={user ? canPost(user) : false}
+            />
           </div>
 
           {categories.length > 0 ? (

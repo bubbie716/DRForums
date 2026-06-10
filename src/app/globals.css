@@ -85,12 +85,12 @@ textarea {
   outline-offset: 2px;
 }
 
-.recipient-combobox input:focus-visible {
-  outline: none;
-  outline-offset: 0;
-}
-
-.auto-resize-textarea:focus-visible {
+input.form-field:focus-visible,
+textarea.form-field:focus-visible,
+.form-field-wrapper input:focus-visible,
+.form-field-wrapper textarea:focus-visible,
+.form-field-inner:focus-visible,
+.form-field-trigger:focus-visible {
   outline: none;
   outline-offset: 0;
 }

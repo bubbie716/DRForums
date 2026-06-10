@@ -6,6 +6,7 @@ export type ConversationListItem = {
     id: string;
     username: string;
   };
+  subject: string | null;
   latestMessage: {
     id: string;
     content: string;
@@ -118,10 +119,14 @@ export async function getConversationList(
       }
 
       const latestMessage = conversation.messages[0] ?? null;
+      const firstMessage =
+        conversation.messages[conversation.messages.length - 1] ?? null;
 
       return {
         id: conversation.id,
         otherUser: otherParticipant.user,
+        subject:
+          conversation.subject ?? firstMessage?.subject ?? null,
         latestMessage: latestMessage
           ? {
               id: latestMessage.id,
@@ -209,9 +214,13 @@ export async function getConversationForUser(
     return null;
   }
 
+  const firstMessage = participation.conversation.messages[0] ?? null;
+
   return {
     id: participation.conversation.id,
     otherUser,
+    subject:
+      participation.conversation.subject ?? firstMessage?.subject ?? null,
     messages: participation.conversation.messages,
     lastReadAt: participation.lastReadAt,
   };

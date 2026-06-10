@@ -22,6 +22,11 @@ export type SessionUser = {
 export const MINECRAFT_LINK_REQUIRED_MESSAGE =
   "You must link your Minecraft account before posting. Go to Settings and verify with /forumsverify in-game.";
 
+/** Set MINECRAFT_VERIFICATION_REQUIRED=false in .env to bypass for testing. */
+export function isMinecraftVerificationRequired(): boolean {
+  return process.env.MINECRAFT_VERIFICATION_REQUIRED !== "false";
+}
+
 export type ValidationResult =
   | { valid: true }
   | { valid: false; error: string };
@@ -162,5 +167,9 @@ export function isAdmin(role: Role): boolean {
 }
 
 export function canPost(user: SessionUser): boolean {
+  if (!isMinecraftVerificationRequired()) {
+    return true;
+  }
+
   return Boolean(user.minecraftUuid) || isAdmin(user.role);
 }

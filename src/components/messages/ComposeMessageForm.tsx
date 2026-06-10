@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { sendMessage, searchMessageRecipients } from "@/lib/messages/actions";
-import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
+import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import {
+  formFieldInnerClassName,
+  formFieldWrapperClassName,
+  formInputClassName,
+} from "@/components/ui/fieldStyles";
 import { MinecraftHead } from "@/components/forum/MinecraftHead";
 import { RecipientChip, type Recipient } from "@/components/messages/RecipientChip";
 import { cn } from "@/lib/utils";
@@ -18,6 +25,7 @@ export function ComposeMessageForm({
   const [selectedRecipients, setSelectedRecipients] =
     useState<Recipient[]>(initialRecipients);
   const [searchQuery, setSearchQuery] = useState("");
+  const [subject, setSubject] = useState("");
   const [content, setContent] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -88,10 +96,23 @@ export function ComposeMessageForm({
       ...(searchQuery.trim() ? [searchQuery.trim()] : []),
     ];
 
-    const result = await sendMessage(recipientUsernames, content);
+    try {
+      const result = await sendMessage(recipientUsernames, subject, content);
 
-    if (!result.success) {
-      setError(result.error);
+      if (!result.success) {
+        setError(result.error);
+        setLoading(false);
+      }
+    } catch (submitError) {
+      if (isRedirectError(submitError)) {
+        throw submitError;
+      }
+
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Failed to send message."
+      );
       setLoading(false);
     }
   }
@@ -112,16 +133,11 @@ export function ComposeMessageForm({
 
       <div className="space-y-5">
         <div className="relative">
-          <label
-            htmlFor="recipient"
-            className="block text-sm font-bold text-text-dark mb-2"
-          >
-            To
-          </label>
+          <FieldLabel className="mb-2">To</FieldLabel>
           <div
             className={cn(
-              "recipient-combobox flex flex-wrap items-center gap-2 px-3 py-2 rounded-xl bg-cream border border-border min-h-[52px]",
-              "focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 transition-all"
+              formFieldWrapperClassName,
+              "flex flex-wrap items-center gap-2 px-3 py-2 min-h-[52px]"
             )}
             onClick={() => inputRef.current?.focus()}
           >
@@ -155,7 +171,10 @@ export function ComposeMessageForm({
               aria-expanded={showSuggestions && suggestions.length > 0}
               aria-controls="recipient-suggestions"
               aria-autocomplete="list"
-              className="flex-1 min-w-[140px] px-2 py-2 bg-transparent text-text-dark placeholder:text-text-muted focus:outline-none focus-visible:outline-none"
+              className={cn(
+                formFieldInnerClassName,
+                "flex-1 min-w-[140px] px-2 py-2"
+              )}
             />
           </div>
           {showSuggestions && suggestions.length > 0 && (
@@ -194,19 +213,30 @@ export function ComposeMessageForm({
         </div>
 
         <div>
-          <label
-            htmlFor="message"
-            className="block text-sm font-bold text-text-dark mb-2"
-          >
-            Message
-          </label>
-          <AutoResizeTextarea
+          <FieldLabel className="mb-2">Subject</FieldLabel>
+          <input
+            id="subject"
+            type="text"
+            value={subject}
+            onChange={(event) => setSubject(event.target.value)}
+            required
+            minLength={5}
+            maxLength={200}
+            placeholder="What is this message about?"
+            className={formInputClassName}
+          />
+          <p className="mt-1 text-xs text-text-secondary">Minimum 5 characters.</p>
+        </div>
+
+        <div>
+          <FieldLabel className="mb-2">Message</FieldLabel>
+          <MentionTextarea
             id="message"
             value={content}
             onChange={(event) => setContent(event.target.value)}
             rows={10}
             required
-            placeholder="Write your message…"
+            placeholder="Write your message… Use @ to mention someone"
             className="min-h-[220px]"
           />
         </div>

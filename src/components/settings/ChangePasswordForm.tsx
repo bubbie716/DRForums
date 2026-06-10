@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PasswordInput } from "@/components/auth/PasswordInput";
+import { FieldLabel } from "@/components/ui/FieldLabel";
 
 export function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -69,12 +70,7 @@ export function ChangePasswordForm() {
       )}
 
       <div className="space-y-2">
-        <label
-          htmlFor="currentPassword"
-          className="block text-sm font-bold text-text-dark"
-        >
-          Current password
-        </label>
+        <FieldLabel>Current password</FieldLabel>
         <PasswordInput
           id="currentPassword"
           name="currentPassword"
@@ -86,12 +82,7 @@ export function ChangePasswordForm() {
       </div>
 
       <div className="space-y-2">
-        <label
-          htmlFor="newPassword"
-          className="block text-sm font-bold text-text-dark"
-        >
-          New password
-        </label>
+        <FieldLabel>New password</FieldLabel>
         <PasswordInput
           id="newPassword"
           name="newPassword"
@@ -105,12 +96,7 @@ export function ChangePasswordForm() {
       </div>
 
       <div className="space-y-2">
-        <label
-          htmlFor="confirmNewPassword"
-          className="block text-sm font-bold text-text-dark"
-        >
-          Confirm new password
-        </label>
+        <FieldLabel>Confirm new password</FieldLabel>
         <PasswordInput
           id="confirmNewPassword"
           name="confirmNewPassword"

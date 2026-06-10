@@ -1,15 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { getSessionUser } from "@/lib/auth";
+import { getUnreadForumNotificationCount } from "@/lib/forum-notifications/queries";
 import { getUnreadMessageCount } from "@/lib/messages/queries";
+import { MessagesUnreadBadge } from "@/components/messages/MessagesUnreadBadge";
 import { NavLink } from "./NavLink";
 
 export async function Header() {
   const user = await getSessionUser();
-  const unreadMessageCount = user
-    ? await getUnreadMessageCount(user.id)
-    : 0;
-
+  const [unreadDirectMessageCount, unreadForumNotificationCount] = user
+    ? await Promise.all([
+        getUnreadMessageCount(user.id),
+        getUnreadForumNotificationCount(user.id),
+      ])
+    : [0, 0];
   return (
     <header className="sticky top-0 z-50 bg-cream/95 backdrop-blur-md border-b border-border shadow-sm shadow-accent/5">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -28,7 +33,7 @@ export async function Header() {
                 District Roleplay
               </div>
               <div className="text-sm text-text-secondary mt-0.5">
-                Municipal Forum
+                Community Forum
               </div>
             </div>
           </Link>
@@ -43,11 +48,14 @@ export async function Header() {
                 <NavLink href="/messages">
                   <span className="inline-flex items-center gap-2">
                     Messages
-                    {unreadMessageCount > 0 && (
-                      <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-accent text-white text-[10px] font-bold tabular-nums">
-                        {unreadMessageCount > 99 ? "99+" : unreadMessageCount}
-                      </span>
-                    )}
+                    <Suspense fallback={null}>
+                      <MessagesUnreadBadge
+                        unreadForumNotificationCount={
+                          unreadForumNotificationCount
+                        }
+                        unreadDirectMessageCount={unreadDirectMessageCount}
+                      />
+                    </Suspense>
                   </span>
                 </NavLink>
                 <NavLink href={`/profile/${user.username}`} exact>

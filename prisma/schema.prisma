@@ -31,8 +31,68 @@ model User {
   messageReactions           MessageReaction[]
   conversationParticipants   ConversationParticipant[]
   sentMessages               Message[]
+  mentionsReceived           Mention[]                 @relation("MentionsReceived")
+  mentionsSent               Mention[]                 @relation("MentionsSent")
+  forumNotificationsReceived ForumNotification[]       @relation("ForumNotificationsReceived")
+  forumNotificationsSent     ForumNotification[]       @relation("ForumNotificationsSent")
 
   @@map("users")
+}
+
+enum ForumNotificationType {
+  MENTION
+  THREAD_REPLY
+  POST_REACTION
+}
+
+model ForumNotification {
+  id           String                @id @default(cuid())
+  userId       String
+  actorUserId  String
+  type         ForumNotificationType
+  postId       String?
+  threadId     String?
+  reactionType ReactionType?
+  readAt       DateTime?
+  createdAt    DateTime              @default(now())
+
+  user   User    @relation("ForumNotificationsReceived", fields: [userId], references: [id], onDelete: Cascade)
+  actor  User    @relation("ForumNotificationsSent", fields: [actorUserId], references: [id], onDelete: Cascade)
+  post   Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  thread Thread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, postId, actorUserId, reactionType])
+  @@index([userId, readAt])
+  @@index([actorUserId])
+  @@map("forum_notifications")
+}
+
+enum MentionSource {
+  FORUM
+  DIRECT_MESSAGE
+}
+
+model Mention {
+  id              String        @id @default(cuid())
+  mentionedUserId String
+  mentionerUserId String
+  username        String
+  source          MentionSource
+  postId          String?
+  messageId       String?
+  readAt          DateTime?
+  createdAt       DateTime      @default(now())
+
+  mentionedUser User     @relation("MentionsReceived", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  mentionerUser User     @relation("MentionsSent", fields: [mentionerUserId], references: [id], onDelete: Cascade)
+  post          Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  message       Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([mentionedUserId, readAt])
+  @@index([mentionerUserId])
+  @@index([postId])
+  @@index([messageId])
+  @@map("mentions")
 }
 
 enum ReactionType {
@@ -40,6 +100,8 @@ enum ReactionType {
   HEART
   FIRE
   THUMBS_DOWN
+  SKULL
+  WITHERED_ROSE
 }
 
 model MinecraftVerificationCode {
@@ -116,7 +178,8 @@ model Thread {
 
   forum  Forum  @relation(fields: [forumId], references: [id], onDelete: Cascade)
   author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  posts  Post[]
+  posts               Post[]
+  forumNotifications  ForumNotification[]
 
   @@index([forumId])
   @@index([authorId])
@@ -125,16 +188,19 @@ model Thread {
 }
 
 model Post {
-  id        String   @id @default(cuid())
-  content   String
-  threadId  String
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  content        String
+  threadId       String
+  authorId       String
+  replyToPostId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   thread    Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
   author    User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  reactions PostReaction[]
+  reactions           PostReaction[]
+  mentions            Mention[]
+  forumNotifications  ForumNotification[]
 
   @@index([threadId])
   @@index([authorId])
@@ -158,6 +224,7 @@ model PostReaction {
 
 model Conversation {
   id        String   @id @default(cuid())
+  subject   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -185,17 +252,20 @@ model ConversationParticipant {
 }
 
 model Message {
-  id             String    @id @default(cuid())
-  conversationId String
-  senderId       String
-  content        String
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  deletedAt      DateTime?
+  id                String    @id @default(cuid())
+  conversationId    String
+  senderId          String
+  subject           String?
+  content           String
+  replyToMessageId  String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
 
   conversation Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User              @relation(fields: [senderId], references: [id], onDelete: Cascade)
   reactions    MessageReaction[]
+  mentions     Mention[]
 
   @@index([conversationId])
   @@index([senderId])

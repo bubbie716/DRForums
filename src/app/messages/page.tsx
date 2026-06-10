@@ -1,16 +1,50 @@
 import Link from "next/link";
 import { ConversationList } from "@/components/messages/ConversationList";
+import { ForumNotificationsList } from "@/components/messages/ForumNotificationsList";
+import {
+  MessagesSidebar,
+  type MessagesTab,
+} from "@/components/messages/MessagesSidebar";
 import { getSessionUser } from "@/lib/auth";
-import { getConversationList } from "@/lib/messages/queries";
+import {
+  getConversationList,
+  getUnreadMessageCount,
+} from "@/lib/messages/queries";
+import {
+  getForumNotifications,
+  getUnreadForumNotificationCount,
+} from "@/lib/forum-notifications/queries";
 
-export default async function MessagesPage() {
+type MessagesPageProps = {
+  searchParams: Promise<{ tab?: string }>;
+};
+
+function parseTab(tab?: string): MessagesTab {
+  return tab === "direct" ? "direct" : "notifications";
+}
+
+export default async function MessagesPage({ searchParams }: MessagesPageProps) {
+  const { tab: tabParam } = await searchParams;
+  const tab = parseTab(tabParam);
   const user = await getSessionUser();
 
   if (!user) {
     return null;
   }
 
-  const conversations = await getConversationList(user.id);
+  const isDirectTab = tab === "direct";
+
+  const [
+    conversations,
+    forumNotifications,
+    unreadDirectMessageCount,
+    unreadForumNotificationCount,
+  ] = await Promise.all([
+    isDirectTab ? getConversationList(user.id) : Promise.resolve([]),
+    isDirectTab ? Promise.resolve([]) : getForumNotifications(user.id),
+    getUnreadMessageCount(user.id),
+    getUnreadForumNotificationCount(user.id),
+  ]);
 
   return (
     <div className="bg-surface min-h-full">
@@ -19,23 +53,42 @@ export default async function MessagesPage() {
           <div>
             <h1 className="text-2xl font-extrabold text-text-dark">Messages</h1>
             <p className="text-text-secondary mt-1">
-              Private conversations with forum members
+              {isDirectTab
+                ? "Private conversations with forum members"
+                : "Updates from forum activity"}
             </p>
           </div>
-          <Link
-            href="/messages/new"
-            className="inline-flex items-center justify-center px-6 py-2.5 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-          >
-            Compose
-          </Link>
+          {isDirectTab && (
+            <Link
+              href="/messages/new"
+              className="inline-flex items-center justify-center px-6 py-2.5 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+            >
+              Compose
+            </Link>
+          )}
         </div>
 
-        <div className="mt-8">
-          <ConversationList
-            conversations={conversations}
-            emptyTitle="Your inbox is empty"
-            emptyDescription="Start a private conversation with another member."
+        <div className="mt-8 flex flex-col lg:flex-row gap-6">
+          <MessagesSidebar
+            activeTab={tab}
+            unreadForumNotificationCount={
+              isDirectTab ? unreadForumNotificationCount : 0
+            }
+            unreadDirectMessageCount={
+              isDirectTab ? 0 : unreadDirectMessageCount
+            }
           />
+          <div className="flex-1 min-w-0">
+            {isDirectTab ? (
+              <ConversationList
+                conversations={conversations}
+                emptyTitle="No direct messages"
+                emptyDescription="Start a private conversation with another member."
+              />
+            ) : (
+              <ForumNotificationsList notifications={forumNotifications} />
+            )}
+          </div>
         </div>
       </div>
     </div>

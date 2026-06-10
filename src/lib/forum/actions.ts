@@ -24,6 +24,11 @@ import {
 export type { ToggleReactionResult };
 import type { ReactionType } from "@prisma/client";
 import { cookies } from "next/headers";
+import {
+  createForumMentionNotifications,
+  createPostReactionNotification,
+  createThreadReplyNotification,
+} from "@/lib/forum-notifications/create";
 
 export type ActionResult =
   | { success: true }
@@ -83,17 +88,36 @@ export async function createThread(
         },
       },
     },
-    select: { id: true },
+    select: {
+      id: true,
+      posts: {
+        select: { id: true },
+        take: 1,
+        orderBy: { createdAt: "asc" },
+      },
+    },
   });
 
+  const postId = thread.posts[0]?.id;
+  if (postId) {
+    await createForumMentionNotifications({
+      content: trimmedContent,
+      actorUserId: user.id,
+      postId,
+      threadId: thread.id,
+    });
+  }
+
   revalidatePath(`/forum/${forum.slug}`);
+  revalidatePath("/messages");
   revalidatePath("/");
   redirect(`/thread/${thread.id}`);
 }
 
 export async function createReply(
   threadId: string,
-  content: string
+  content: string,
+  replyToPostId?: string
 ): Promise<ActionResult> {
   const user = await getSessionUser();
   if (!user) {
@@ -111,7 +135,12 @@ export async function createReply(
 
   const thread = await prisma.thread.findUnique({
     where: { id: threadId },
-    select: { id: true, isLocked: true, forum: { select: { slug: true } } },
+    select: {
+      id: true,
+      authorId: true,
+      isLocked: true,
+      forum: { select: { slug: true } },
+    },
   });
 
   if (!thread) {
@@ -122,12 +151,44 @@ export async function createReply(
     return { success: false, error: "This thread is locked." };
   }
 
-  await prisma.post.create({
+  const trimmedContent = content.trim();
+
+  if (replyToPostId) {
+    const quotedPost = await prisma.post.findFirst({
+      where: {
+        id: replyToPostId,
+        threadId: thread.id,
+      },
+      select: { id: true },
+    });
+
+    if (!quotedPost) {
+      return { success: false, error: "Quoted post not found." };
+    }
+  }
+
+  const post = await prisma.post.create({
     data: {
-      content: content.trim(),
+      content: trimmedContent,
       threadId: thread.id,
       authorId: user.id,
+      replyToPostId: replyToPostId ?? null,
     },
+    select: { id: true },
+  });
+
+  await createForumMentionNotifications({
+    content: trimmedContent,
+    actorUserId: user.id,
+    postId: post.id,
+    threadId: thread.id,
+  });
+
+  await createThreadReplyNotification({
+    threadAuthorId: thread.authorId,
+    actorUserId: user.id,
+    threadId: thread.id,
+    postId: post.id,
   });
 
   await prisma.thread.update({
@@ -138,6 +199,7 @@ export async function createReply(
   revalidatePath(`/thread/${thread.id}`);
   revalidatePath(`/forum/${thread.forum.slug}`);
   revalidatePath("/");
+  revalidatePath("/messages");
 
   return { success: true };
 }
@@ -237,6 +299,7 @@ export async function togglePostReaction(
     where: { id: postId },
     select: {
       id: true,
+      authorId: true,
       thread: {
         select: { id: true },
       },
@@ -269,6 +332,14 @@ export async function togglePostReaction(
         type,
       },
     });
+
+    await createPostReactionNotification({
+      postAuthorId: post.authorId,
+      actorUserId: user.id,
+      threadId: post.thread.id,
+      postId: post.id,
+      reactionType: type,
+    });
   }
 
   const reactions = await prisma.postReaction.findMany({
@@ -279,6 +350,7 @@ export async function togglePostReaction(
   const summary = summarizePostReactions(reactions, user.id);
 
   revalidatePath(`/thread/${post.thread.id}`);
+  revalidatePath("/messages");
 
   return {
     success: true,

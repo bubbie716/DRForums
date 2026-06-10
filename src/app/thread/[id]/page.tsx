@@ -11,6 +11,7 @@ import { PostCard } from "@/components/forum/PostCard";
 import { MinecraftLinkRequiredNotice } from "@/components/forum/MinecraftLinkRequiredNotice";
 import { ReplyForm } from "@/components/forum/ReplyForm";
 import { ModThreadControls } from "@/components/forum/ModThreadControls";
+import { QuoteReplyProvider } from "@/components/shared/QuoteReplyContext";
 
 type ThreadPageProps = {
   params: Promise<{ id: string }>;
@@ -38,6 +39,11 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
   }
 
   const canModerate = user ? isModerator(user.role) : false;
+  const canQuoteReply = !!(
+    user &&
+    canPost(user) &&
+    !thread.isLocked
+  );
   const replies = thread.posts.slice(1);
 
   return (
@@ -46,7 +52,7 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
       <div className="max-w-5xl mx-auto px-6 lg:px-8 py-10 lg:py-14">
         <Breadcrumbs
           items={[
-            { label: "Forums", href: "/" },
+            { label: "Forums", href: "/", restoreScroll: true },
             { label: thread.forum.category.name },
             {
               label: thread.forum.name,
@@ -99,60 +105,67 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
           </div>
         </div>
 
-        <div className="mt-6 space-y-4">
-          {thread.posts.length > 0 && (
-            <PostCard
-              post={thread.posts[0]}
-              currentUserId={user?.id}
-              isLoggedIn={!!user}
-              isOriginalPost
-            />
-          )}
+        <QuoteReplyProvider>
+          <div className="mt-6 space-y-4">
+            {thread.posts.length > 0 && (
+              <PostCard
+                threadId={thread.id}
+                post={thread.posts[0]}
+                currentUserId={user?.id}
+                isLoggedIn={!!user}
+                isOriginalPost
+                canQuoteReply={canQuoteReply}
+              />
+            )}
 
-          {replies.length > 0 && (
-            <>
-              <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary pt-2">
-                {replies.length} {replies.length === 1 ? "Reply" : "Replies"}
-              </h2>
-              {replies.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUserId={user?.id}
-                  isLoggedIn={!!user}
-                />
-              ))}
-            </>
-          )}
-        </div>
+            {replies.length > 0 && (
+              <>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-text-secondary pt-2">
+                  {replies.length}{" "}
+                  {replies.length === 1 ? "Reply" : "Replies"}
+                </h2>
+                {replies.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    threadId={thread.id}
+                    post={post}
+                    currentUserId={user?.id}
+                    isLoggedIn={!!user}
+                    canQuoteReply={canQuoteReply}
+                  />
+                ))}
+              </>
+            )}
+          </div>
 
-        <div className="mt-8">
-          {thread.isLocked ? (
-            <div className="bg-white border border-border rounded-2xl shadow-warm px-6 py-8 text-center">
-              <p className="text-text-secondary font-medium">
-                This thread is locked. No new replies can be posted.
-              </p>
-            </div>
-          ) : user ? (
-            canPost(user) ? (
-              <ReplyForm threadId={thread.id} />
+          <div className="mt-8">
+            {thread.isLocked ? (
+              <div className="bg-white border border-border rounded-2xl shadow-warm px-6 py-8 text-center">
+                <p className="text-text-secondary font-medium">
+                  This thread is locked. No new replies can be posted.
+                </p>
+              </div>
+            ) : user ? (
+              canPost(user) ? (
+                <ReplyForm threadId={thread.id} />
+              ) : (
+                <MinecraftLinkRequiredNotice action="post replies" />
+              )
             ) : (
-              <MinecraftLinkRequiredNotice action="post replies" />
-            )
-          ) : (
-            <div className="bg-white border border-border rounded-2xl shadow-warm px-6 py-8 text-center">
-              <p className="text-text-secondary">
-                <Link
-                  href="/login"
-                  className="text-accent font-semibold hover:underline"
-                >
-                  Sign in
-                </Link>{" "}
-                to post a reply.
-              </p>
-            </div>
-          )}
-        </div>
+              <div className="bg-white border border-border rounded-2xl shadow-warm px-6 py-8 text-center">
+                <p className="text-text-secondary">
+                  <Link
+                    href="/login"
+                    className="text-accent font-semibold hover:underline"
+                  >
+                    Sign in
+                  </Link>{" "}
+                  to post a reply.
+                </p>
+              </div>
+            )}
+          </div>
+        </QuoteReplyProvider>
       </div>
     </div>
   );

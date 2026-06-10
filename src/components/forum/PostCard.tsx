@@ -8,6 +8,9 @@ import type { ReactionType } from "@prisma/client";
 import { MinecraftHead } from "./MinecraftHead";
 import { PostReactions } from "./PostReactions";
 import { RoleBadge } from "./RoleBadge";
+import { RenderedContent } from "@/components/forum/RenderedContent";
+import { CopyPermalinkButton } from "@/components/shared/CopyPermalinkButton";
+import { QuoteReplyButton } from "@/components/shared/QuoteReplyButton";
 import type { Role } from "@prisma/client";
 
 type PostAuthor = {
@@ -19,6 +22,7 @@ type PostAuthor = {
 };
 
 type PostCardProps = {
+  threadId: string;
   post: {
     id: string;
     content: string;
@@ -29,18 +33,26 @@ type PostCardProps = {
   currentUserId?: string | null;
   isLoggedIn?: boolean;
   isOriginalPost?: boolean;
+  canQuoteReply?: boolean;
 };
 
+function getPostPermalink(threadId: string, postId: string): string {
+  return `/thread/${threadId}#post-${postId}`;
+}
+
 export function PostCard({
+  threadId,
   post,
   currentUserId = null,
   isLoggedIn = false,
   isOriginalPost = false,
+  canQuoteReply = false,
 }: PostCardProps) {
   const reactionSummary = summarizePostReactions(
     post.reactions,
     currentUserId
   );
+  const permalink = getPostPermalink(threadId, post.id);
   return (
     <article
       id={`post-${post.id}`}
@@ -81,10 +93,24 @@ export function PostCard({
             >
               {formatDate(post.createdAt)}
             </time>
+            <div className="flex items-center gap-1 shrink-0">
+              {canQuoteReply && (
+                <QuoteReplyButton
+                  username={post.author.username}
+                  content={post.content}
+                  replyToPostId={post.id}
+                />
+              )}
+              <CopyPermalinkButton
+                href={permalink}
+                label="Copy link to this post"
+              />
+            </div>
           </div>
-          <div className="text-text-primary leading-relaxed whitespace-pre-wrap break-words">
-            {post.content}
-          </div>
+          <RenderedContent
+            content={post.content}
+            className="text-text-primary leading-relaxed whitespace-pre-wrap break-words"
+          />
 
           <PostReactions
             key={getReactionStateKey(

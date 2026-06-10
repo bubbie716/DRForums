@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { FieldLabel } from "@/components/ui/FieldLabel";
+import {
+  formFieldInnerClassName,
+  formFieldWrapperClassName,
+} from "@/components/ui/fieldStyles";
 import { useRouter } from "next/navigation";
 import { CODE_PREFIX } from "@/lib/minecraft-verification";
 
@@ -72,13 +78,13 @@ export function LinkMinecraftForm() {
       </p>
 
       <div className="space-y-2">
-        <label
-          htmlFor="verificationCode"
-          className="block text-sm font-bold text-text-dark"
+        <FieldLabel>Verification code</FieldLabel>
+        <div
+          className={cn(
+            formFieldWrapperClassName,
+            "inline-flex items-stretch overflow-hidden"
+          )}
         >
-          Verification code
-        </label>
-        <div className="inline-flex items-stretch rounded-xl border border-border bg-cream overflow-hidden focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20 transition-all">
           <span className="inline-flex items-center px-3 py-2.5 bg-yellow/30 border-r border-border text-accent-dark text-sm font-bold tracking-widest shrink-0">
             {CODE_PREFIX}
           </span>
@@ -96,7 +102,10 @@ export function LinkMinecraftForm() {
               setCodeDigits(e.target.value.replace(/\D/g, "").slice(0, 6))
             }
             placeholder="123456"
-            className="w-[7.5rem] px-3 py-2.5 bg-transparent text-text-dark text-sm text-center placeholder:text-text-muted focus:outline-none tracking-[0.2em] font-semibold"
+            className={cn(
+              formFieldInnerClassName,
+              "w-[7.5rem] px-3 py-2.5 text-sm text-center tracking-[0.2em] font-semibold"
+            )}
           />
         </div>
       </div>

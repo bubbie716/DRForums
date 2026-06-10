@@ -185,7 +185,7 @@ export function ReactionsBar({
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-border/60">
+    <div className="mt-3 pt-3 border-t border-border/60">
       {error && (
         <p role="alert" className="mb-3 text-xs text-red-600">
           {error}
@@ -216,7 +216,7 @@ export function ReactionsBar({
           className={cn(
             "flex items-center gap-2 overflow-hidden transition-all duration-300 ease-out",
             expanded
-              ? "max-w-[320px] opacity-100 pointer-events-auto"
+              ? "max-w-[400px] opacity-100 pointer-events-auto"
               : "max-w-0 opacity-0 pointer-events-none"
           )}
         >

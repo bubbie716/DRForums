@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { replyToConversation } from "@/lib/messages/actions";
-import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
+import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { useQuoteReply } from "@/components/shared/QuoteReplyContext";
 import { cn } from "@/lib/utils";
 
 type ConversationReplyFormProps = {
@@ -14,16 +15,30 @@ export function ConversationReplyForm({
   conversationId,
 }: ConversationReplyFormProps) {
   const router = useRouter();
+  const { registerReplyHandler } = useQuoteReply();
   const [content, setContent] = useState("");
+  const [replyToMessageId, setReplyToMessageId] = useState<string | undefined>();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    return registerReplyHandler(({ quoteText, replyToMessageId: messageId }) => {
+      setContent(quoteText);
+      setReplyToMessageId(messageId);
+      setError("");
+    });
+  }, [registerReplyHandler]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = await replyToConversation(conversationId, content);
+    const result = await replyToConversation(
+      conversationId,
+      content,
+      replyToMessageId
+    );
 
     if (!result.success) {
       setError(result.error);
@@ -32,12 +47,14 @@ export function ConversationReplyForm({
     }
 
     setContent("");
+    setReplyToMessageId(undefined);
     setLoading(false);
     router.refresh();
   }
 
   return (
     <form
+      id="reply-form"
       onSubmit={handleSubmit}
       className="bg-white border border-border rounded-2xl shadow-warm p-6"
     >
@@ -52,12 +69,16 @@ export function ConversationReplyForm({
         </div>
       )}
 
-      <AutoResizeTextarea
+      <MentionTextarea
         value={content}
-        onChange={(event) => setContent(event.target.value)}
+        onChange={(event) => {
+          setContent(event.target.value);
+          if (replyToMessageId) {
+            setReplyToMessageId(undefined);
+          }
+        }}
         rows={5}
-        required
-        placeholder="Write your reply…"
+        placeholder="Write your reply… Use @ to mention someone"
       />
 
       <div className="mt-4 flex justify-end">

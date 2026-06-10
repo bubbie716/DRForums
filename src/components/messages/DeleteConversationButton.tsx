@@ -27,7 +27,7 @@ export function DeleteConversationButton({
       return;
     }
 
-    router.push("/messages");
+    router.push("/messages?tab=direct");
     router.refresh();
   }
 

@@ -5,6 +5,8 @@ export const REACTION_TYPES = [
   "HEART",
   "FIRE",
   "THUMBS_DOWN",
+  "SKULL",
+  "WITHERED_ROSE",
 ] as const satisfies readonly ReactionType[];
 
 export type ReactionCounts = Record<ReactionType, number>;
@@ -22,6 +24,8 @@ export const EMPTY_REACTION_COUNTS: ReactionCounts = {
   HEART: 0,
   FIRE: 0,
   THUMBS_DOWN: 0,
+  SKULL: 0,
+  WITHERED_ROSE: 0,
 };
 
 export const REACTION_META: Record<
@@ -32,12 +36,20 @@ export const REACTION_META: Record<
   HEART: { label: "Heart", emoji: "❤️" },
   FIRE: { label: "Fire", emoji: "🔥" },
   THUMBS_DOWN: { label: "Thumbs down", emoji: "👎" },
+  SKULL: { label: "Skull", emoji: "💀" },
+  WITHERED_ROSE: { label: "Withered rose", emoji: "🥀" },
 };
 
 const POSITIVE_REACTION_TYPES = new Set<ReactionType>([
   "THUMBS_UP",
   "HEART",
   "FIRE",
+]);
+
+const NEGATIVE_REACTION_TYPES = new Set<ReactionType>([
+  "THUMBS_DOWN",
+  "SKULL",
+  "WITHERED_ROSE",
 ]);
 
 export function isValidReactionType(value: string): value is ReactionType {
@@ -76,7 +88,9 @@ export function scoreUserReactionsOnPost(types: ReactionType[]): number {
   const hasPositive = uniqueTypes.some((type) =>
     POSITIVE_REACTION_TYPES.has(type)
   );
-  const hasNegative = uniqueTypes.includes("THUMBS_DOWN");
+  const hasNegative = uniqueTypes.some((type) =>
+    NEGATIVE_REACTION_TYPES.has(type)
+  );
 
   if (hasPositive && hasNegative) {
     return 0;
@@ -90,7 +104,8 @@ export function scoreUserReactionsOnPost(types: ReactionType[]): number {
   return 0;
 }
 
-export function calculateReactionRatioFromReactions(
+/** Forum post reactions only — DM message reactions must never be passed here. */
+export function calculateReactionRatioFromPostReactions(
   reactions: { postId: string; userId: string; type: ReactionType }[]
 ): number {
   const reactionsByUserPost = new Map<string, ReactionType[]>();

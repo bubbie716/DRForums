@@ -2,11 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import {
+  isPrismaSchemaReady,
+  PRISMA_SCHEMA_STALE_MESSAGE,
+  prisma,
+} from "@/lib/prisma";
 import { getSessionUser } from "@/lib/auth";
 import {
   normalizeRecipientUsername,
   validateMessageContent,
+  validateMessageSubject,
 } from "@/lib/messages/validation";
 import { searchUsersByUsername } from "@/lib/messages/queries";
 import {
@@ -15,37 +20,12 @@ import {
   type ToggleReactionResult,
 } from "@/lib/forum/reactions";
 import type { ReactionType } from "@prisma/client";
+import { MentionSource } from "@prisma/client";
+import { createForumMentionsForContent } from "@/lib/forum-notifications/create";
 
 export type MessageActionResult =
   | { success: true }
   | { success: false; error: string };
-
-async function findExistingConversation(userId: string, otherUserId: string) {
-  const participations = await prisma.conversationParticipant.findMany({
-    where: { userId },
-    select: {
-      conversationId: true,
-      conversation: {
-        select: {
-          id: true,
-          participants: {
-            select: { userId: true },
-          },
-        },
-      },
-    },
-  });
-
-  return (
-    participations.find(
-      (participation) =>
-        participation.conversation.participants.length === 2 &&
-        participation.conversation.participants.some(
-          (participant) => participant.userId === otherUserId
-        )
-    )?.conversation ?? null
-  );
-}
 
 async function restoreConversationForParticipants(conversationId: string) {
   await prisma.conversationParticipant.updateMany({
@@ -57,55 +37,45 @@ async function restoreConversationForParticipants(conversationId: string) {
 async function sendMessageToRecipient(
   senderId: string,
   recipientId: string,
+  subject: string,
   content: string
-): Promise<string> {
-  const existingConversation = await findExistingConversation(
-    senderId,
-    recipientId
-  );
-
-  if (existingConversation) {
-    await restoreConversationForParticipants(existingConversation.id);
-
-    await prisma.$transaction([
-      prisma.message.create({
-        data: {
-          conversationId: existingConversation.id,
-          senderId,
-          content,
-        },
-      }),
-      prisma.conversation.update({
-        where: { id: existingConversation.id },
-        data: { updatedAt: new Date() },
-      }),
-    ]);
-
-    return existingConversation.id;
-  }
-
-  const conversation = await prisma.conversation.create({
-    data: {
-      participants: {
-        create: [{ userId: senderId }, { userId: recipientId }],
-      },
-      messages: {
-        create: {
-          senderId,
-          content,
+): Promise<{ conversationId: string; messageId: string }> {
+  return prisma.$transaction(async (tx) => {
+    const createdConversation = await tx.conversation.create({
+      data: {
+        subject,
+        participants: {
+          create: [{ userId: senderId }, { userId: recipientId }],
         },
       },
-    },
-    select: { id: true },
+      select: { id: true },
+    });
+
+    const message = await tx.message.create({
+      data: {
+        conversationId: createdConversation.id,
+        senderId,
+        content,
+      },
+      select: { id: true },
+    });
+
+    return {
+      conversationId: createdConversation.id,
+      messageId: message.id,
+    };
   });
-
-  return conversation.id;
 }
 
 export async function sendMessage(
   recipientUsernames: string[],
+  subject: string,
   content: string
 ): Promise<MessageActionResult> {
+  if (!isPrismaSchemaReady()) {
+    return { success: false, error: PRISMA_SCHEMA_STALE_MESSAGE };
+  }
+
   const user = await getSessionUser();
   if (!user) {
     return { success: false, error: "You must be logged in to send messages." };
@@ -127,6 +97,11 @@ export async function sendMessage(
     return { success: false, error: "You cannot message yourself." };
   }
 
+  const subjectValidation = validateMessageSubject(subject);
+  if (!subjectValidation.valid) {
+    return { success: false, error: subjectValidation.error };
+  }
+
   const contentValidation = validateMessageContent(content);
   if (!contentValidation.valid) {
     return { success: false, error: contentValidation.error };
@@ -146,11 +121,20 @@ export async function sendMessage(
   const conversationIds: string[] = [];
 
   for (const recipient of recipients) {
-    const conversationId = await sendMessageToRecipient(
+    const { conversationId, messageId } = await sendMessageToRecipient(
       user.id,
       recipient.id,
+      subjectValidation.value,
       contentValidation.value
     );
+
+    await createForumMentionsForContent({
+      content: contentValidation.value,
+      mentionerUserId: user.id,
+      source: MentionSource.DIRECT_MESSAGE,
+      messageId,
+    });
+
     conversationIds.push(conversationId);
   }
 
@@ -161,12 +145,13 @@ export async function sendMessage(
     redirect(`/messages/${conversationIds[0]}`);
   }
 
-  redirect("/messages");
+  redirect("/messages?tab=direct");
 }
 
 export async function replyToConversation(
   conversationId: string,
-  content: string
+  content: string,
+  replyToMessageId?: string
 ): Promise<MessageActionResult> {
   const user = await getSessionUser();
   if (!user) {
@@ -192,23 +177,41 @@ export async function replyToConversation(
     return { success: false, error: "Conversation not found." };
   }
 
-  await prisma.$transaction([
-    prisma.message.create({
+  if (replyToMessageId) {
+    const quotedMessage = await prisma.message.findFirst({
+      where: {
+        id: replyToMessageId,
+        conversationId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+
+    if (!quotedMessage) {
+      return { success: false, error: "Quoted message not found." };
+    }
+  }
+
+  const message = await prisma.$transaction(async (tx) => {
+    const createdMessage = await tx.message.create({
       data: {
         conversationId,
         senderId: user.id,
         content: contentValidation.value,
+        replyToMessageId: replyToMessageId ?? null,
       },
-    }),
-    prisma.conversation.update({
+      select: { id: true },
+    });
+
+    await tx.conversation.update({
       where: { id: conversationId },
       data: { updatedAt: new Date() },
-    }),
-    prisma.conversationParticipant.updateMany({
+    });
+    await tx.conversationParticipant.updateMany({
       where: { conversationId },
       data: { deletedAt: null },
-    }),
-    prisma.conversationParticipant.update({
+    });
+    await tx.conversationParticipant.update({
       where: {
         conversationId_userId: {
           conversationId,
@@ -216,8 +219,17 @@ export async function replyToConversation(
         },
       },
       data: { lastReadAt: new Date() },
-    }),
-  ]);
+    });
+
+    return createdMessage;
+  });
+
+  await createForumMentionsForContent({
+    content: contentValidation.value,
+    mentionerUserId: user.id,
+    source: MentionSource.DIRECT_MESSAGE,
+    messageId: message.id,
+  });
 
   revalidatePath("/messages");
   revalidatePath(`/messages/${conversationId}`);
@@ -225,6 +237,7 @@ export async function replyToConversation(
   return { success: true };
 }
 
+/** DM reactions are not included in profile reaction ratio (forum posts only). */
 export async function toggleMessageReaction(
   messageId: string,
   type: ReactionType
