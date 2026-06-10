@@ -3,7 +3,11 @@ import Link from "next/link";
 import { CopyServerButton } from "./CopyServerButton";
 import { HeroBrandWatermark } from "./HeroBrandWatermark";
 
-export function HeroSection() {
+type HeroSectionProps = {
+  isLoggedIn: boolean;
+};
+
+export function HeroSection({ isLoggedIn }: HeroSectionProps) {
   return (
     <section className="relative overflow-hidden bg-gradient-hero border-b border-border min-h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] md:min-h-[calc(100dvh-5rem-env(safe-area-inset-top,0px))] flex flex-col justify-center">
       <HeroBrandWatermark />
@@ -20,26 +24,49 @@ export function HeroSection() {
           </p>
 
           <div className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
-            <Link
-              href="#forums"
-              className="inline-flex min-h-11 items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-orange text-white font-bold rounded-2xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-            >
-              <svg
-                className="w-5 h-5 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
+            {isLoggedIn ? (
+              <Link
+                href="#forums"
+                className="inline-flex min-h-11 items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-orange text-white font-bold rounded-2xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-              Browse Forums
-            </Link>
+                <svg
+                  className="w-5 h-5 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                Browse Forums
+              </Link>
+            ) : (
+              <Link
+                href="/register"
+                className="inline-flex min-h-11 items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-orange text-white font-bold rounded-2xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+              >
+                <svg
+                  className="w-5 h-5 shrink-0"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                  />
+                </svg>
+                Join the Community
+              </Link>
+            )}
             <CopyServerButton />
           </div>
 

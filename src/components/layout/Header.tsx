@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { getUnreadForumNotificationCount } from "@/lib/forum-notifications/queries";
 import { getUnreadMessageCount } from "@/lib/messages/queries";
 import { HeaderNavigation } from "./HeaderNavigation";
+import { ScrollAwareHeader } from "./ScrollAwareHeader";
 
 export async function Header() {
   const user = await getSessionUser();
@@ -15,7 +16,7 @@ export async function Header() {
     : [0, 0];
 
   return (
-    <header className="sticky top-0 z-50 bg-cream/95 backdrop-blur-md border-b border-border shadow-sm shadow-accent/5 pt-[env(safe-area-inset-top)]">
+    <ScrollAwareHeader>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 md:h-[80px]">
           <Link href="/" className="flex items-center gap-3 md:gap-4 group min-w-0">
@@ -44,6 +45,6 @@ export async function Header() {
           />
         </div>
       </div>
-    </header>
+    </ScrollAwareHeader>
   );
 }

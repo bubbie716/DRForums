@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { MessagesUnreadBadge } from "@/components/messages/MessagesUnreadBadge";
 import { NavLink } from "./NavLink";
+import { MOBILE_HEADER_HEIGHT } from "./ScrollAwareHeader";
 import { cn } from "@/lib/utils";
 
 type HeaderNavigationProps = {
@@ -139,7 +140,10 @@ export function HeaderNavigation({
       />
 
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 top-14 z-50">
+        <div
+          className="md:hidden fixed inset-0 z-50"
+          style={{ top: MOBILE_HEADER_HEIGHT }}
+        >
           <button
             type="button"
             aria-label="Close menu"
@@ -148,7 +152,8 @@ export function HeaderNavigation({
           />
           <nav
             id="mobile-nav-menu"
-            className="relative bg-cream border-b border-border shadow-warm-lg px-4 py-4 space-y-1 max-h-[calc(100dvh-3.5rem)] overflow-y-auto"
+            className="relative bg-cream border-b border-border shadow-warm-lg px-4 py-4 space-y-1 overflow-y-auto"
+            style={{ maxHeight: `calc(100dvh - ${MOBILE_HEADER_HEIGHT})` }}
           >
             <NavLink href="/" exact stacked onNavigate={() => setMobileOpen(false)}>
               Forums
