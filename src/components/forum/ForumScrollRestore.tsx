@@ -1,23 +1,35 @@
 "use client";
 
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { usePathname } from "next/navigation";
-import { consumeForumIndexScrollRestore } from "@/lib/forum/scrollRestore";
+import {
+  clearForumIndexScrollRestore,
+  getPendingForumIndexScrollRestore,
+  hasForumIndexScrollRestoreSettled,
+  isForumIndexScrollRestoreReady,
+  restoreForumIndexScrollInstant,
+} from "@/lib/forum/scrollRestore";
 
-function restoreScrollPositionInstant(scrollY: number): void {
-  const { documentElement: html, body } = document;
-  const htmlBehavior = html.style.scrollBehavior;
-  const bodyBehavior = body.style.scrollBehavior;
-  const previousHistoryRestoration = history.scrollRestoration;
+const RETRY_DELAYS_MS = [0, 16, 50, 100, 200, 400, 800, 1200, 1800];
 
-  html.style.scrollBehavior = "auto";
-  body.style.scrollBehavior = "auto";
-  history.scrollRestoration = "manual";
-  window.scrollTo(0, scrollY);
+function tryRestorePendingScroll(): boolean {
+  const scrollY = getPendingForumIndexScrollRestore();
+  if (scrollY === null) {
+    return false;
+  }
 
-  html.style.scrollBehavior = htmlBehavior;
-  body.style.scrollBehavior = bodyBehavior;
-  history.scrollRestoration = previousHistoryRestoration;
+  if (!isForumIndexScrollRestoreReady(scrollY)) {
+    return false;
+  }
+
+  restoreForumIndexScrollInstant(scrollY);
+
+  if (hasForumIndexScrollRestoreSettled(scrollY)) {
+    clearForumIndexScrollRestore();
+    return true;
+  }
+
+  return false;
 }
 
 export function ForumScrollRestore() {
@@ -28,19 +40,49 @@ export function ForumScrollRestore() {
       return;
     }
 
-    const scrollY = consumeForumIndexScrollRestore();
-    if (scrollY === null) {
+    tryRestorePendingScroll();
+  }, [pathname]);
+
+  useEffect(() => {
+    if (pathname !== "/") {
       return;
     }
 
-    restoreScrollPositionInstant(scrollY);
+    if (!getPendingForumIndexScrollRestore()) {
+      return;
+    }
 
-    const frameId = window.requestAnimationFrame(() => {
-      restoreScrollPositionInstant(scrollY);
+    if (tryRestorePendingScroll()) {
+      return;
+    }
+
+    const timeouts = RETRY_DELAYS_MS.map((delay) =>
+      window.setTimeout(() => {
+        tryRestorePendingScroll();
+      }, delay)
+    );
+
+    const resizeObserver = new ResizeObserver(() => {
+      tryRestorePendingScroll();
     });
 
+    resizeObserver.observe(document.documentElement);
+
+    const giveUpTimer = window.setTimeout(() => {
+      const scrollY = getPendingForumIndexScrollRestore();
+      if (scrollY !== null) {
+        restoreForumIndexScrollInstant(scrollY);
+      }
+      clearForumIndexScrollRestore();
+      resizeObserver.disconnect();
+    }, 2500);
+
     return () => {
-      window.cancelAnimationFrame(frameId);
+      for (const timeout of timeouts) {
+        window.clearTimeout(timeout);
+      }
+      window.clearTimeout(giveUpTimer);
+      resizeObserver.disconnect();
     };
   }, [pathname]);
 
