@@ -13,6 +13,7 @@ export function ForumsHomeLink({ children, className }: ForumsHomeLinkProps) {
   return (
     <Link
       href="/"
+      scroll={false}
       className={className}
       onClick={() => markForumIndexScrollRestore()}
     >

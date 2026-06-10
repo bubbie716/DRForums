@@ -1,20 +1,37 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { consumeForumIndexScrollRestore } from "@/lib/forum/scrollRestore";
 
+function restoreScrollPositionInstant(scrollY: number): void {
+  const { documentElement: html, body } = document;
+  const htmlBehavior = html.style.scrollBehavior;
+  const bodyBehavior = body.style.scrollBehavior;
+
+  html.style.scrollBehavior = "auto";
+  body.style.scrollBehavior = "auto";
+  window.scrollTo(0, scrollY);
+
+  html.style.scrollBehavior = htmlBehavior;
+  body.style.scrollBehavior = bodyBehavior;
+}
+
 export function ForumScrollRestore() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const scrollY = consumeForumIndexScrollRestore();
     if (scrollY === null) {
       return;
     }
 
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        window.scrollTo(0, scrollY);
-      });
+    restoreScrollPositionInstant(scrollY);
+
+    const frameId = window.requestAnimationFrame(() => {
+      restoreScrollPositionInstant(scrollY);
     });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
   }, []);
 
   return null;
