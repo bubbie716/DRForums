@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { CopyServerButton } from "./CopyServerButton";
 import { HeroBrandWatermark } from "./HeroBrandWatermark";
+import { HeroBrowseForumsLink } from "./HeroBrowseForumsLink";
 
 type HeroSectionProps = {
   isLoggedIn: boolean;
@@ -25,10 +26,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
 
           <div className="mt-8 md:mt-12 flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 sm:gap-4">
             {isLoggedIn ? (
-              <Link
-                href="#forums"
-                className="inline-flex min-h-11 items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-orange text-white font-bold rounded-2xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-              >
+              <HeroBrowseForumsLink className="inline-flex min-h-11 items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-orange text-white font-bold rounded-2xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
                 <svg
                   className="w-5 h-5 shrink-0"
                   fill="none"
@@ -44,7 +42,7 @@ export function HeroSection({ isLoggedIn }: HeroSectionProps) {
                   />
                 </svg>
                 Browse Forums
-              </Link>
+              </HeroBrowseForumsLink>
             ) : (
               <Link
                 href="/register"

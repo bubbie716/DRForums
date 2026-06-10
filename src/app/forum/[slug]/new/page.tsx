@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { canPost, getSessionUser } from "@/lib/auth";
 import { getForumBySlug } from "@/lib/forum/queries";
+import {
+  canCreateThread,
+  canReadForum,
+  canViewForum,
+} from "@/lib/forumAccess";
 import { Breadcrumbs } from "@/components/forum/Breadcrumbs";
 import { CreateThreadForm } from "@/components/forum/CreateThreadForm";
 import { MinecraftLinkRequiredNotice } from "@/components/forum/MinecraftLinkRequiredNotice";
@@ -35,6 +40,16 @@ export default async function NewThreadPage({ params }: NewThreadPageProps) {
     notFound();
   }
 
+  const [canView, canRead, canCreate] = await Promise.all([
+    canViewForum(user.id, forum.id),
+    canReadForum(user.id, forum.id),
+    canCreateThread(user.id, forum.id),
+  ]);
+
+  if (!canView || !canRead || !canCreate) {
+    notFound();
+  }
+
   return (
     <div className="bg-surface min-h-full">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-14">
@@ -55,7 +70,13 @@ export default async function NewThreadPage({ params }: NewThreadPageProps) {
         </p>
 
         <div className="mt-8">
-          {canPost(user) ? (
+          {forum.isLocked ? (
+            <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-6 py-8 text-center">
+              <p className="text-text-secondary font-medium">
+                This forum is locked. No new threads can be created.
+              </p>
+            </div>
+          ) : canPost(user) ? (
             <CreateThreadForm forumSlug={forum.slug} />
           ) : (
             <MinecraftLinkRequiredNotice action="create threads" />

@@ -188,6 +188,30 @@ export async function createThreadReplyNotification({
   });
 }
 
+export async function createRoleChangeNotification({
+  userId,
+  actorUserId,
+  type,
+  roleName,
+}: {
+  userId: string;
+  actorUserId: string;
+  type: "ROLE_ASSIGNED" | "ROLE_REMOVED";
+  roleName: string;
+}): Promise<void> {
+  await prisma.forumNotification.create({
+    data: {
+      userId,
+      actorUserId,
+      type:
+        type === "ROLE_ASSIGNED"
+          ? ForumNotificationType.ROLE_ASSIGNED
+          : ForumNotificationType.ROLE_REMOVED,
+      roleName,
+    },
+  });
+}
+
 export async function createPostReactionNotification({
   postAuthorId,
   actorUserId,

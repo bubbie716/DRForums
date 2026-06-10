@@ -90,12 +90,72 @@ textarea {
 
 input.form-field:focus-visible,
 textarea.form-field:focus-visible,
+select.form-field:focus-visible,
 .form-field-wrapper input:focus-visible,
 .form-field-wrapper textarea:focus-visible,
 .form-field-inner:focus-visible,
 .form-field-trigger:focus-visible {
   outline: none;
   outline-offset: 0;
+}
+
+input.form-field,
+textarea.form-field,
+select.form-field {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  background-color: var(--color-cream);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-dark);
+  font: inherit;
+  line-height: 1.25;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+textarea.form-field {
+  min-height: 5.5rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  resize: vertical;
+  overflow: auto;
+}
+
+select.form-field {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2.75rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 10.94l3.71-3.71a.75.75 0 1 1 1.06 1.06l-4.24 4.25a.75.75 0 0 1-1.06 0L5.21 8.29a.75.75 0 0 1 .02-1.06Z' clip-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.25rem;
+}
+
+input.form-field::placeholder,
+textarea.form-field::placeholder {
+  color: var(--color-text-muted);
+}
+
+input.form-field:focus,
+input.form-field:focus-visible,
+textarea.form-field:focus,
+textarea.form-field:focus-visible,
+select.form-field:focus,
+select.form-field:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px rgba(226, 144, 39, 0.2);
+}
+
+input.form-field:disabled,
+textarea.form-field:disabled,
+select.form-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .text-gradient-orange {

@@ -2,6 +2,10 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
+import {
+  DropdownPortal,
+  dropdownPanelClassName,
+} from "@/components/ui/dropdown";
 import { MinecraftHead } from "@/components/forum/MinecraftHead";
 import { searchMentionUsers } from "@/lib/mentions/actions";
 import { getTextareaCaretOffset } from "@/lib/mentions/caretPosition";
@@ -57,12 +61,13 @@ export function MentionTextarea({
       textarea.selectionStart ?? textValue.length
     );
 
+    const textareaRect = textarea.getBoundingClientRect();
     const maxLeft = Math.max(0, textarea.clientWidth - POPUP_WIDTH);
     const left = Math.min(caret.left + POPUP_OFFSET_X, maxLeft);
 
     setPopupPosition({
-      top: caret.top + POPUP_OFFSET_Y,
-      left,
+      top: textareaRect.top + caret.top + POPUP_OFFSET_Y,
+      left: textareaRect.left + left,
     });
   }, [textValue.length]);
 
@@ -230,37 +235,44 @@ export function MentionTextarea({
       />
 
       {showSuggestions && suggestions.length > 0 && popupPosition && (
-        <ul
-          role="listbox"
-          style={{
-            top: popupPosition.top,
-            left: popupPosition.left,
-            width: POPUP_WIDTH,
-          }}
-          className="absolute z-20 bg-white border border-border rounded-lg shadow-warm overflow-hidden"
-        >
-          {suggestions.map((suggestion, index) => (
-            <li key={suggestion.id} role="option" aria-selected={index === activeIndex}>
-              <button
-                type="button"
-                onMouseDown={() => insertMention(suggestion.username)}
-                className={cn(
-                  "flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors",
-                  index === activeIndex ? "bg-hover" : "hover:bg-hover"
-                )}
-              >
-                <MinecraftHead
-                  seed={suggestion.id}
-                  minecraftUsername={suggestion.minecraftUsername}
-                  size={28}
-                />
-                <span className="min-w-0 text-sm font-semibold text-text-dark truncate">
-                  {suggestion.username}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        <DropdownPortal>
+          <ul
+            role="listbox"
+            style={{
+              position: "fixed",
+              top: popupPosition.top,
+              left: popupPosition.left,
+              width: POPUP_WIDTH,
+            }}
+            className={cn(dropdownPanelClassName, "rounded-lg")}
+          >
+            {suggestions.map((suggestion, index) => (
+              <li key={suggestion.id} role="option" aria-selected={index === activeIndex}>
+                <button
+                  type="button"
+                  onMouseDown={() => insertMention(suggestion.username)}
+                  onTouchEnd={(event) => {
+                    event.preventDefault();
+                    insertMention(suggestion.username);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors",
+                    index === activeIndex ? "bg-hover" : "hover:bg-hover"
+                  )}
+                >
+                  <MinecraftHead
+                    seed={suggestion.id}
+                    minecraftUsername={suggestion.minecraftUsername}
+                    size={28}
+                  />
+                  <span className="min-w-0 text-sm font-semibold text-text-dark truncate">
+                    {suggestion.username}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </DropdownPortal>
       )}
     </div>
   );

@@ -5,10 +5,8 @@ import { HeroSection } from "@/components/home/HeroSection";
 import { canPost, getSessionUser } from "@/lib/auth";
 
 export default async function ForumIndexPage() {
-  const [categories, user] = await Promise.all([
-    getForumIndex(),
-    getSessionUser(),
-  ]);
+  const user = await getSessionUser();
+  const categories = await getForumIndex({ userId: user?.id ?? null });
 
   const postCategories = categories
     .map((category) => ({
@@ -24,7 +22,10 @@ export default async function ForumIndexPage() {
     <>
       <HeroSection isLoggedIn={!!user} />
 
-      <div id="forums" className="bg-surface scroll-mt-20">
+      <div
+        id="forums"
+        className="bg-surface scroll-mt-[calc(3.5rem+env(safe-area-inset-top,0px))] md:scroll-mt-20"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-14 lg:py-20">
           <div className="mb-8 md:mb-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
             <div className="min-w-0">

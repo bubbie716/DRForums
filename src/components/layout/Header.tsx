@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { getSessionUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { getUnreadForumNotificationCount } from "@/lib/forum-notifications/queries";
 import { getUnreadMessageCount } from "@/lib/messages/queries";
 import { HeaderNavigation } from "./HeaderNavigation";
@@ -8,12 +9,14 @@ import { ScrollAwareHeader } from "./ScrollAwareHeader";
 
 export async function Header() {
   const user = await getSessionUser();
-  const [unreadDirectMessageCount, unreadForumNotificationCount] = user
-    ? await Promise.all([
-        getUnreadMessageCount(user.id),
-        getUnreadForumNotificationCount(user.id),
-      ])
-    : [0, 0];
+  const [unreadDirectMessageCount, unreadForumNotificationCount, showAdmin] =
+    user
+      ? await Promise.all([
+          getUnreadMessageCount(user.id),
+          getUnreadForumNotificationCount(user.id),
+          hasPermission(user.id, "admin.dashboard.view"),
+        ])
+      : [0, 0, false];
 
   return (
     <ScrollAwareHeader>
@@ -39,7 +42,11 @@ export async function Header() {
           </Link>
 
           <HeaderNavigation
-            user={user ? { username: user.username } : null}
+            user={
+              user
+                ? { username: user.username, isAdmin: showAdmin }
+                : null
+            }
             unreadForumNotificationCount={unreadForumNotificationCount}
             unreadDirectMessageCount={unreadDirectMessageCount}
           />

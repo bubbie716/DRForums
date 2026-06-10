@@ -33,6 +33,10 @@ function getNotificationHref(notification: ForumNotificationItem): string {
     return `/thread/${threadId}`;
   }
 
+  if (notification.type === "ROLE_ASSIGNED" || notification.type === "ROLE_REMOVED") {
+    return `/profile/${notification.recipientUsername}`;
+  }
+
   return "/messages";
 }
 
@@ -56,6 +60,14 @@ function getNotificationMessage(notification: ForumNotificationItem): string {
         ? `reacted ${emoji} to your post in ${threadTitle}`
         : `reacted ${emoji} to your post`;
     }
+    case "ROLE_ASSIGNED":
+      return notification.roleName
+        ? `assigned you the ${notification.roleName} role`
+        : "assigned you a new role";
+    case "ROLE_REMOVED":
+      return notification.roleName
+        ? `removed your ${notification.roleName} role`
+        : "removed a role from you";
     default:
       return "interacted with your forum activity";
   }
@@ -101,8 +113,8 @@ export function ForumNotificationRow({
         isUnread && "bg-yellow/15 hover:bg-yellow/25"
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 flex-1 items-start gap-3">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
           <MinecraftHead
             seed={notification.actor.id}
             minecraftUsername={notification.actor.minecraftUsername}

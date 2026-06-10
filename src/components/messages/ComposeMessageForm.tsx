@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  DropdownPortal,
+  dropdownPanelClassName,
+  useAnchoredFixedPosition,
+} from "@/components/ui/dropdown";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { sendMessage, searchMessageRecipients } from "@/lib/messages/actions";
 import { MentionTextarea } from "@/components/mentions/MentionTextarea";
@@ -22,6 +27,7 @@ export function ComposeMessageForm({
   initialRecipients = [],
 }: ComposeMessageFormProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const recipientFieldRef = useRef<HTMLDivElement>(null);
   const [selectedRecipients, setSelectedRecipients] =
     useState<Recipient[]>(initialRecipients);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,6 +39,11 @@ export function ComposeMessageForm({
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const selectedIds = new Set(selectedRecipients.map((recipient) => recipient.id));
+  const suggestionPosition = useAnchoredFixedPosition({
+    anchorRef: recipientFieldRef,
+    enabled: showSuggestions && suggestions.length > 0,
+    maxHeight: 240,
+  });
 
   useEffect(() => {
     const query = searchQuery.trim();
@@ -135,6 +146,7 @@ export function ComposeMessageForm({
         <div className="relative">
           <FieldLabel className="mb-2">To</FieldLabel>
           <div
+            ref={recipientFieldRef}
             className={cn(
               formFieldWrapperClassName,
               "flex flex-wrap items-center gap-2 px-3 py-2 min-h-[52px]"
@@ -177,38 +189,51 @@ export function ComposeMessageForm({
               )}
             />
           </div>
-          {showSuggestions && suggestions.length > 0 && (
-            <ul
-              id="recipient-suggestions"
-              role="listbox"
-              className="absolute z-10 mt-2 w-full bg-white border border-border rounded-xl shadow-warm overflow-hidden"
-            >
-              {suggestions.map((suggestion) => (
-                <li key={suggestion.id} role="option">
-                  <button
-                    type="button"
-                    onMouseDown={() => addRecipient(suggestion)}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover transition-colors"
-                  >
-                    <MinecraftHead
-                      seed={suggestion.id}
-                      minecraftUsername={suggestion.minecraftUsername}
-                      size={36}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-text-dark truncate">
-                        {suggestion.username}
-                      </p>
-                      {suggestion.minecraftUsername && (
-                        <p className="text-xs text-text-secondary truncate">
-                          {suggestion.minecraftUsername}
+          {showSuggestions && suggestions.length > 0 && suggestionPosition && (
+            <DropdownPortal>
+              <ul
+                id="recipient-suggestions"
+                role="listbox"
+                style={{
+                  position: "fixed",
+                  top: suggestionPosition.top,
+                  left: suggestionPosition.left,
+                  width: suggestionPosition.width,
+                  maxHeight: suggestionPosition.maxHeight,
+                }}
+                className={cn(dropdownPanelClassName, "rounded-xl")}
+              >
+                {suggestions.map((suggestion) => (
+                  <li key={suggestion.id} role="option">
+                    <button
+                      type="button"
+                      onMouseDown={() => addRecipient(suggestion)}
+                      onTouchEnd={(event) => {
+                        event.preventDefault();
+                        addRecipient(suggestion);
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover transition-colors"
+                    >
+                      <MinecraftHead
+                        seed={suggestion.id}
+                        minecraftUsername={suggestion.minecraftUsername}
+                        size={36}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-text-dark truncate">
+                          {suggestion.username}
                         </p>
-                      )}
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                        {suggestion.minecraftUsername && (
+                          <p className="text-xs text-text-secondary truncate">
+                            {suggestion.minecraftUsername}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </DropdownPortal>
           )}
         </div>
 

@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { calculateReactionRatioFromPostReactions } from "@/lib/forum/reactions";
+import { canViewThread, getForumAccessMap } from "@/lib/forumAccess";
+import { getUserDisplayRole } from "@/lib/permissions";
 
 export type LatestPost = {
   id: string;
@@ -37,11 +39,22 @@ export type CategoryWithForums = {
   forums: ForumWithStats[];
 };
 
-export async function getForumIndex(): Promise<CategoryWithForums[]> {
+type ForumIndexOptions = {
+  includeHidden?: boolean;
+  userId?: string | null;
+};
+
+export async function getForumIndex(
+  options: ForumIndexOptions = {}
+): Promise<CategoryWithForums[]> {
+  const { includeHidden = false, userId = null } = options;
+
   const categories = await prisma.category.findMany({
+    where: includeHidden ? undefined : { isVisible: true },
     orderBy: { sortOrder: "asc" },
     include: {
       forums: {
+        where: includeHidden ? undefined : { isVisible: true },
         orderBy: { sortOrder: "asc" },
         include: {
           _count: {
@@ -79,76 +92,169 @@ export async function getForumIndex(): Promise<CategoryWithForums[]> {
     );
   }
 
-  const latestPostResults = await Promise.all(
-    forumIds.map(async (forumId) => {
-      const post = await prisma.post.findFirst({
-        where: { thread: { forumId } },
-        orderBy: { createdAt: "desc" },
+  const recentPosts = await prisma.post.findMany({
+    where: { thread: { forumId: { in: forumIds } } },
+    orderBy: { createdAt: "desc" },
+    take: Math.max(forumIds.length * 2, 50),
+    select: {
+      id: true,
+      createdAt: true,
+      thread: {
         select: {
           id: true,
-          createdAt: true,
-          thread: {
-            select: {
-              id: true,
-              title: true,
-            },
-          },
-          author: {
-            select: {
-              username: true,
-            },
-          },
+          title: true,
+          forumId: true,
         },
-      });
+      },
+      author: {
+        select: {
+          username: true,
+        },
+      },
+    },
+  });
 
-      return { forumId, post };
+  const latestPostMap = new Map<string, LatestPost>();
+  for (const post of recentPosts) {
+    const forumId = post.thread.forumId;
+    if (latestPostMap.has(forumId)) {
+      continue;
+    }
+
+    latestPostMap.set(forumId, {
+      id: post.id,
+      createdAt: post.createdAt,
+      thread: {
+        id: post.thread.id,
+        title: post.thread.title,
+      },
+      author: {
+        username: post.author.username,
+      },
+    });
+  }
+
+  const accessMap = includeHidden
+    ? null
+    : await getForumAccessMap(
+        userId,
+        forumIds
+      );
+
+  const filteredCategories = categories
+    .map((category) => {
+      const forums = category.forums
+        .filter((forum) => {
+          if (includeHidden) {
+            return true;
+          }
+          return accessMap?.get(forum.id)?.canView ?? true;
+        })
+        .map((forum) => ({
+          id: forum.id,
+          name: forum.name,
+          slug: forum.slug,
+          description: forum.description,
+          sortOrder: forum.sortOrder,
+          categoryId: forum.categoryId,
+          createdAt: forum.createdAt,
+          updatedAt: forum.updatedAt,
+          threadCount: forum._count.threads,
+          postCount: postCountMap.get(forum.id) ?? 0,
+          latestPost: latestPostMap.get(forum.id) ?? null,
+        }));
+
+      return {
+        id: category.id,
+        name: category.name,
+        description: category.description,
+        sortOrder: category.sortOrder,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+        forums,
+      };
     })
+    .filter((category) => includeHidden || category.forums.length > 0);
+
+  if (includeHidden) {
+    return filteredCategories;
+  }
+
+  const visibleLatestPosts = await Promise.all(
+    filteredCategories.flatMap((category) =>
+      category.forums
+        .filter((forum) => forum.latestPost)
+        .map(async (forum) => {
+          const post = forum.latestPost!;
+          const allowed = await canViewThread(userId, post.thread.id);
+          return {
+            forumId: forum.id,
+            post: allowed ? post : null,
+          };
+        })
+    )
   );
 
-  const latestPostMap = new Map(
-    latestPostResults.map(({ forumId, post }) => [forumId, post])
+  const visibleLatestMap = new Map(
+    visibleLatestPosts.map((entry) => [entry.forumId, entry.post])
   );
 
-  return categories.map((category) => ({
-    id: category.id,
-    name: category.name,
-    description: category.description,
-    sortOrder: category.sortOrder,
-    createdAt: category.createdAt,
-    updatedAt: category.updatedAt,
+  return filteredCategories.map((category) => ({
+    ...category,
     forums: category.forums.map((forum) => ({
-      id: forum.id,
-      name: forum.name,
-      slug: forum.slug,
-      description: forum.description,
-      sortOrder: forum.sortOrder,
-      categoryId: forum.categoryId,
-      createdAt: forum.createdAt,
-      updatedAt: forum.updatedAt,
-      threadCount: forum._count.threads,
-      postCount: postCountMap.get(forum.id) ?? 0,
-      latestPost: latestPostMap.get(forum.id) ?? null,
+      ...forum,
+      latestPost: forum.latestPost
+        ? (visibleLatestMap.get(forum.id) ?? null)
+        : null,
     })),
   }));
 }
 
-export async function getForumBySlug(slug: string) {
-  return prisma.forum.findUnique({
+export async function getForumBySlug(
+  slug: string,
+  options: { includeHidden?: boolean } = {}
+) {
+  const forum = await prisma.forum.findUnique({
     where: { slug },
     include: {
       category: {
         select: {
           id: true,
           name: true,
+          isVisible: true,
         },
       },
     },
   });
+
+  if (!forum) {
+    return null;
+  }
+
+  if (
+    !options.includeHidden &&
+    (!forum.isVisible || !forum.category.isVisible)
+  ) {
+    return null;
+  }
+
+  return forum;
 }
 
-export async function getForumThreads(forumId: string) {
+export async function getForumThreads(
+  forumId: string,
+  userId: string | null = null
+) {
+  const accessMap = await getForumAccessMap(userId, [forumId]);
+  const access = accessMap.get(forumId);
+
+  const threadFilter =
+    access && !access.canViewOtherThreads && !access.canModerate && userId
+      ? { forumId, authorId: userId }
+      : { forumId };
+
   const threads = await prisma.thread.findMany({
-    where: { forumId },
+    where: threadFilter,
     include: {
       author: {
         select: {
@@ -240,7 +346,10 @@ export async function getThreadById(id: string) {
   });
 }
 
-export async function getPublicProfile(username: string) {
+export async function getPublicProfile(
+  username: string,
+  viewerId: string | null = null
+) {
   const user = await prisma.user.findUnique({
     where: { username },
     select: {
@@ -262,13 +371,17 @@ export async function getPublicProfile(username: string) {
     return null;
   }
 
-  const [recentPosts, reactionRatio] = await Promise.all([
-    getUserRecentPosts(user.id),
+  const [recentPosts, reactionRatio, displayRole] = await Promise.all([
+    getUserRecentPosts(user.id, 15, viewerId),
     getUserReactionRatio(user.id),
+    getUserDisplayRole(user.id),
   ]);
 
   return {
     ...user,
+    displayRole: displayRole
+      ? { name: displayRole.name, color: displayRole.color }
+      : null,
     recentPosts,
     reactionRatio,
   };
@@ -287,11 +400,15 @@ export async function getUserReactionRatio(userId: string): Promise<number> {
   return calculateReactionRatioFromPostReactions(postReactions);
 }
 
-export async function getUserRecentPosts(userId: string, limit = 15) {
+export async function getUserRecentPosts(
+  userId: string,
+  limit = 15,
+  viewerId: string | null = userId
+) {
   const posts = await prisma.post.findMany({
     where: { authorId: userId },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: limit * 3,
     select: {
       id: true,
       content: true,
@@ -316,17 +433,32 @@ export async function getUserRecentPosts(userId: string, limit = 15) {
     },
   });
 
-  return posts.map((post) => ({
-    id: post.id,
-    content: post.content,
-    createdAt: post.createdAt,
-    isOriginalPost: post.id === post.thread.posts[0]?.id,
-    thread: {
-      id: post.thread.id,
-      title: post.thread.title,
-      forum: post.thread.forum,
-    },
-  }));
+  const visiblePosts = [];
+
+  for (const post of posts) {
+    const allowed = await canViewThread(viewerId, post.thread.id);
+    if (!allowed) {
+      continue;
+    }
+
+    visiblePosts.push({
+      id: post.id,
+      content: post.content,
+      createdAt: post.createdAt,
+      isOriginalPost: post.id === post.thread.posts[0]?.id,
+      thread: {
+        id: post.thread.id,
+        title: post.thread.title,
+        forum: post.thread.forum,
+      },
+    });
+
+    if (visiblePosts.length >= limit) {
+      break;
+    }
+  }
+
+  return visiblePosts;
 }
 
 export type ForumIndexCategory = CategoryWithForums;

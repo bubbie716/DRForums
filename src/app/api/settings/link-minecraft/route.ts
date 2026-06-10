@@ -5,6 +5,7 @@ import {
   isValidVerificationCodeFormat,
   normalizeVerificationCode,
 } from "@/lib/minecraft-verification";
+import { syncMemberRoleForUser } from "@/lib/user-member-roles";
 
 export async function POST(request: NextRequest) {
   try {
@@ -99,6 +100,8 @@ export async function POST(request: NextRequest) {
         data: { usedAt: linkedAt },
       }),
     ]);
+
+    await syncMemberRoleForUser(currentUser.id);
 
     return NextResponse.json({
       success: true,

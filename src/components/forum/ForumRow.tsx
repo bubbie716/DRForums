@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { formatRelativeDate } from "@/lib/utils";
+import { cn, formatRelativeDate } from "@/lib/utils";
 import { UserProfileLink } from "@/components/profile/UserProfileLink";
 import type { ForumIndexForum } from "@/lib/forum/queries";
 
@@ -9,12 +9,18 @@ type ForumRowProps = {
 
 export function ForumRow({ forum }: ForumRowProps) {
   const { latestPost } = forum;
+  const hasDescription = Boolean(forum.description);
 
   return (
     <>
       <div className="md:hidden px-4 py-4 border-b border-border/60 last:border-b-0 bg-white hover:bg-hover transition-colors duration-200">
-        <div className="flex items-start gap-3 min-w-0">
-          <div className="mt-0.5 w-10 h-10 rounded-xl bg-yellow/50 border-2 border-accent/40 flex items-center justify-center text-accent shrink-0">
+        <div
+          className={cn(
+            "flex gap-3 min-w-0",
+            hasDescription ? "items-start" : "items-center"
+          )}
+        >
+          <div className="w-10 h-10 rounded-xl bg-yellow/50 border-2 border-accent/40 flex items-center justify-center text-accent shrink-0">
             <svg
               className="w-5 h-5"
               fill="none"
@@ -87,8 +93,13 @@ export function ForumRow({ forum }: ForumRowProps) {
       </div>
 
       <div className="hidden md:grid group grid-cols-12 gap-4 px-4 md:px-7 py-5 md:py-6 border-b border-border/60 last:border-b-0 bg-white hover:bg-hover transition-all duration-200">
-        <div className="col-span-12 md:col-span-5 flex items-start gap-4 min-w-0">
-          <div className="mt-0.5 w-11 h-11 rounded-2xl bg-yellow/50 border-2 border-accent/40 flex items-center justify-center text-accent shrink-0 group-hover:bg-yellow group-hover:border-accent transition-all duration-200">
+        <div
+          className={cn(
+            "col-span-12 md:col-span-5 flex gap-4 min-w-0",
+            hasDescription ? "items-start" : "items-center"
+          )}
+        >
+          <div className="w-11 h-11 rounded-2xl bg-yellow/50 border-2 border-accent/40 flex items-center justify-center text-accent shrink-0 group-hover:bg-yellow group-hover:border-accent transition-all duration-200">
             <svg
               className="w-5 h-5"
               fill="none"

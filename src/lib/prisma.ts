@@ -39,7 +39,9 @@ function isStalePrismaClient(
   storedFingerprint?: string
 ): boolean {
   const missingDelegates =
-    !("mention" in client) || !("forumNotification" in client);
+    !("mention" in client) ||
+    !("forumNotification" in client) ||
+    !("forumRolePermission" in client);
   const fingerprintMismatch =
     !!storedFingerprint &&
     storedFingerprint !== getSchemaFingerprint();

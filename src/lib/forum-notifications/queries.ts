@@ -7,6 +7,8 @@ export type ForumNotificationItem = {
   createdAt: Date;
   readAt: Date | null;
   reactionType: ReactionType | null;
+  roleName: string | null;
+  recipientUsername: string;
   actor: {
     id: string;
     username: string;
@@ -45,6 +47,11 @@ export async function getForumNotifications(
   const notifications = await prisma.forumNotification.findMany({
     where: { userId },
     include: {
+      user: {
+        select: {
+          username: true,
+        },
+      },
       actor: {
         select: {
           id: true,
@@ -83,6 +90,8 @@ export async function getForumNotifications(
     createdAt: notification.createdAt,
     readAt: notification.readAt,
     reactionType: notification.reactionType,
+    roleName: notification.roleName,
+    recipientUsername: notification.user.username,
     actor: notification.actor,
     post: notification.post,
     thread: notification.thread ?? notification.post?.thread ?? null,

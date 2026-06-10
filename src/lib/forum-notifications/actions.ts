@@ -23,3 +23,22 @@ export async function markForumNotificationAsRead(
 
   revalidatePath("/messages");
 }
+
+export type ClearAllForumNotificationsResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export async function clearAllForumNotifications(): Promise<ClearAllForumNotificationsResult> {
+  const user = await getSessionUser();
+  if (!user) {
+    return { success: false, error: "You must be logged in." };
+  }
+
+  await prisma.forumNotification.deleteMany({
+    where: { userId: user.id },
+  });
+
+  revalidatePath("/messages");
+  revalidatePath("/", "layout");
+  return { success: true };
+}

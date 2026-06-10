@@ -4,85 +4,65 @@ import { useEffect, useLayoutEffect } from "react";
 import { usePathname } from "next/navigation";
 import {
   clearForumIndexScrollRestore,
-  getPendingForumIndexScrollRestore,
-  hasForumIndexScrollRestoreSettled,
-  isForumIndexScrollRestoreReady,
-  restoreForumIndexScrollInstant,
+  isForumIndexScrollRestorePending,
+  restoreForumIndexScrollByAnchor,
 } from "@/lib/forum/scrollRestore";
 
-const RETRY_DELAYS_MS = [0, 16, 50, 100, 200, 400, 800, 1200, 1800];
+const LAYOUT_RETRY_MS = [100, 300, 600];
 
-function tryRestorePendingScroll(): boolean {
-  const scrollY = getPendingForumIndexScrollRestore();
-  if (scrollY === null) {
+function runRestoreOnce(): boolean {
+  if (!isForumIndexScrollRestorePending()) {
     return false;
   }
 
-  if (!isForumIndexScrollRestoreReady(scrollY)) {
+  const forums = document.getElementById("forums");
+  if (!forums) {
     return false;
   }
 
-  restoreForumIndexScrollInstant(scrollY);
+  restoreForumIndexScrollByAnchor();
+  clearForumIndexScrollRestore();
 
-  if (hasForumIndexScrollRestoreSettled(scrollY)) {
-    clearForumIndexScrollRestore();
-    return true;
-  }
-
-  return false;
+  return true;
 }
 
 export function ForumScrollRestore() {
   const pathname = usePathname();
 
   useLayoutEffect(() => {
-    if (pathname !== "/") {
+    if (pathname !== "/" || !isForumIndexScrollRestorePending()) {
       return;
     }
 
-    tryRestorePendingScroll();
+    runRestoreOnce();
   }, [pathname]);
 
   useEffect(() => {
-    if (pathname !== "/") {
+    if (pathname !== "/" || !isForumIndexScrollRestorePending()) {
       return;
     }
 
-    if (!getPendingForumIndexScrollRestore()) {
-      return;
-    }
-
-    if (tryRestorePendingScroll()) {
-      return;
-    }
-
-    const timeouts = RETRY_DELAYS_MS.map((delay) =>
+    const timeouts = LAYOUT_RETRY_MS.map((delay) =>
       window.setTimeout(() => {
-        tryRestorePendingScroll();
+        if (!isForumIndexScrollRestorePending()) {
+          return;
+        }
+
+        runRestoreOnce();
       }, delay)
     );
 
-    const resizeObserver = new ResizeObserver(() => {
-      tryRestorePendingScroll();
-    });
-
-    resizeObserver.observe(document.documentElement);
-
-    const giveUpTimer = window.setTimeout(() => {
-      const scrollY = getPendingForumIndexScrollRestore();
-      if (scrollY !== null) {
-        restoreForumIndexScrollInstant(scrollY);
+    const giveUpTimeout = window.setTimeout(() => {
+      if (isForumIndexScrollRestorePending()) {
+        clearForumIndexScrollRestore();
       }
-      clearForumIndexScrollRestore();
-      resizeObserver.disconnect();
-    }, 2500);
+    }, 1000);
 
     return () => {
       for (const timeout of timeouts) {
         window.clearTimeout(timeout);
       }
-      window.clearTimeout(giveUpTimer);
-      resizeObserver.disconnect();
+      window.clearTimeout(giveUpTimeout);
     };
   }, [pathname]);
 

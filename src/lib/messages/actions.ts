@@ -7,7 +7,8 @@ import {
   PRISMA_SCHEMA_STALE_MESSAGE,
   prisma,
 } from "@/lib/prisma";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isUserBanned, BAN_RESTRICTED_MESSAGE } from "@/lib/auth";
+import { isDmsEnabled } from "@/lib/settings";
 import {
   normalizeRecipientUsername,
   validateMessageContent,
@@ -83,6 +84,14 @@ export async function sendMessage(
     return { success: false, error: "You must be logged in to send messages." };
   }
 
+  if (!(await isDmsEnabled())) {
+    return { success: false, error: "Direct messages are currently disabled." };
+  }
+
+  if (await isUserBanned(user.id)) {
+    return { success: false, error: BAN_RESTRICTED_MESSAGE };
+  }
+
   const normalizedUsernames = [
     ...new Set(
       recipientUsernames
@@ -147,6 +156,14 @@ export async function replyToConversation(
   const user = await getSessionUser();
   if (!user) {
     return { success: false, error: "You must be logged in to reply." };
+  }
+
+  if (!(await isDmsEnabled())) {
+    return { success: false, error: "Direct messages are currently disabled." };
+  }
+
+  if (await isUserBanned(user.id)) {
+    return { success: false, error: BAN_RESTRICTED_MESSAGE };
   }
 
   const contentValidation = validateMessageContent(content);
@@ -320,6 +337,27 @@ export async function refreshMessagesAfterRead(
   revalidatePath("/messages");
   revalidatePath(`/messages/${conversationId}`);
   revalidatePath("/", "layout");
+}
+
+export async function markAllDirectMessagesAsRead(): Promise<MessageActionResult> {
+  const user = await getSessionUser();
+  if (!user) {
+    return { success: false, error: "You must be logged in." };
+  }
+
+  await prisma.conversationParticipant.updateMany({
+    where: {
+      userId: user.id,
+      deletedAt: null,
+    },
+    data: {
+      lastReadAt: new Date(),
+    },
+  });
+
+  revalidatePath("/messages");
+  revalidatePath("/", "layout");
+  return { success: true };
 }
 
 export async function searchMessageRecipients(query: string) {

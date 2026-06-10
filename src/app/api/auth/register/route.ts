@@ -7,9 +7,17 @@ import {
   validatePassword,
   validateUsername,
 } from "@/lib/auth";
+import { isRegistrationEnabled } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(await isRegistrationEnabled())) {
+      return NextResponse.json(
+        { error: "Registration is currently disabled." },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const username = String(body.username ?? "").trim();
     const password = String(body.password ?? "");
@@ -43,10 +51,18 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hashPassword(password);
 
+    const defaultRole = await prisma.appRole.findFirst({
+      where: { isDefault: true },
+      select: { id: true },
+    });
+
     const user = await prisma.user.create({
       data: {
         username,
         passwordHash,
+        userRoles: defaultRole
+          ? { create: { roleId: defaultRole.id } }
+          : undefined,
       },
       select: {
         id: true,

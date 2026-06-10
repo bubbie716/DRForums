@@ -1,8 +1,18 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import type { Role } from "@prisma/client";
+import {
+  hasEveryPermission,
+  hasAnyPermission,
+} from "@/lib/permissions";
+import { getAllRequiredPermissions } from "@/lib/permissions/requirements";
+import { getActiveBan, BAN_RESTRICTED_MESSAGE } from "@/lib/bans";
+
+export { BAN_RESTRICTED_MESSAGE };
 
 export const SESSION_COOKIE_NAME = "dr_session";
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -118,7 +128,7 @@ export async function clearSessionCookie(): Promise<void> {
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
 
-export async function getSessionUser(): Promise<SessionUser | null> {
+export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
@@ -150,7 +160,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   }
 
   return session.user;
-}
+});
 
 export async function destroySession(token: string): Promise<void> {
   await prisma.session.deleteMany({
@@ -172,4 +182,79 @@ export function canPost(user: SessionUser): boolean {
   }
 
   return Boolean(user.minecraftUuid) || isAdmin(user.role);
+}
+
+export async function requireAdmin(): Promise<SessionUser> {
+  return requireAdminPermission("admin.dashboard.view");
+}
+
+export async function requireAdminPermission(
+  permissionKey: string
+): Promise<SessionUser> {
+  const user = await getSessionUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const requiredKeys = [permissionKey, ...getAllRequiredPermissions(permissionKey)];
+  const allowed =
+    (await hasEveryPermission(user.id, requiredKeys)) || isAdmin(user.role);
+
+  if (!allowed) {
+    redirect("/access-denied");
+  }
+
+  return user;
+}
+
+export async function requireAnyAdminPermission(
+  permissionKeys: string[]
+): Promise<SessionUser> {
+  const user = await getSessionUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const allowed =
+    (
+      await Promise.all(
+        permissionKeys.map(async (key) => {
+          const requiredKeys = [key, ...getAllRequiredPermissions(key)];
+          return hasEveryPermission(user.id, requiredKeys);
+        })
+      )
+    ).some(Boolean) || isAdmin(user.role);
+
+  if (!allowed) {
+    redirect("/access-denied");
+  }
+
+  return user;
+}
+
+export async function requireNotBanned(userId: string): Promise<void> {
+  const banned = await getActiveBan(userId);
+  if (banned) {
+    throw new Error(BAN_RESTRICTED_MESSAGE);
+  }
+}
+
+export async function isUserBanned(userId: string): Promise<boolean> {
+  const ban = await getActiveBan(userId);
+  return ban !== null;
+}
+
+export async function canUserPost(user: SessionUser): Promise<boolean> {
+  if (await isUserBanned(user.id)) return false;
+  return canPost(user);
+}
+
+export async function userCanModerate(userId: string): Promise<boolean> {
+  return hasAnyPermission(userId, [
+    "forum.thread.lock",
+    "forum.thread.pin",
+    "forum.post.editAny",
+  ]);
 }

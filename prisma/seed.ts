@@ -1,5 +1,7 @@
 import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { seedPermissionsRolesSettings } from "./seed-permissions";
+import { SYSTEM_ROLE_SLUGS } from "../src/lib/system-roles";
 
 const prisma = new PrismaClient();
 
@@ -210,11 +212,19 @@ async function main() {
     const { forums, ...categoryData } = category;
     const categoryId = `seed-${slugify(category.name)}`;
 
+    const categorySlug = slugify(category.name);
+
     const createdCategory = await prisma.category.upsert({
       where: { id: categoryId },
-      update: categoryData,
+      update: {
+        ...categoryData,
+        slug: categorySlug,
+        isVisible: true,
+      },
       create: {
         id: categoryId,
+        slug: categorySlug,
+        isVisible: true,
         ...categoryData,
       },
     });
@@ -229,15 +239,42 @@ async function main() {
           ...forum,
           slug: forumSlug,
           categoryId: createdCategory.id,
+          isVisible: true,
+          isLocked: false,
         },
         create: {
           id: forumId,
           slug: forumSlug,
+          isVisible: true,
+          isLocked: false,
           ...forum,
           categoryId: createdCategory.id,
         },
       });
     }
+  }
+
+  await seedPermissionsRolesSettings(prisma);
+
+  const founderRole = await prisma.appRole.findUnique({
+    where: { slug: SYSTEM_ROLE_SLUGS.FOUNDER },
+    select: { id: true },
+  });
+
+  if (founderRole) {
+    await prisma.userRole.upsert({
+      where: {
+        userId_roleId: {
+          userId: admin.id,
+          roleId: founderRole.id,
+        },
+      },
+      create: {
+        userId: admin.id,
+        roleId: founderRole.id,
+      },
+      update: {},
+    });
   }
 
   const categoryCount = categories.length;

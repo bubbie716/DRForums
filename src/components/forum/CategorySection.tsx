@@ -8,27 +8,34 @@ type CategorySectionProps = {
 export function CategorySection({ category }: CategorySectionProps) {
   return (
     <section className="bg-cream border border-border rounded-2xl shadow-warm overflow-hidden">
-      <div className="px-4 md:px-7 py-4 md:py-6 flex items-center justify-between gap-4 md:gap-6 border-b border-border bg-gradient-to-r from-cream via-surface to-yellow/20">
-        <div className="flex items-center gap-3 md:gap-5 min-w-0">
-          <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-orange flex items-center justify-center text-white shrink-0 shadow-warm">
-            <svg
-              className="w-5 h-5 md:w-6 md:h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
-              />
-            </svg>
+      <div className="px-4 md:px-7 py-4 md:py-6 border-b border-border bg-gradient-to-r from-cream via-surface to-yellow/20">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-6 min-w-0">
+          <div className="flex items-center gap-3 md:gap-5 min-w-0 shrink-0">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-orange flex items-center justify-center text-white shrink-0 shadow-warm">
+              <svg
+                className="w-5 h-5 md:w-6 md:h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"
+                />
+              </svg>
+            </div>
+            <h2 className="font-extrabold text-text-dark text-lg md:text-xl min-w-0 break-words">
+              {category.name}
+            </h2>
           </div>
-          <h2 className="font-extrabold text-text-dark text-lg md:text-xl min-w-0 break-words">
-            {category.name}
-          </h2>
+          {category.description ? (
+            <p className="text-sm text-text-secondary leading-relaxed line-clamp-2 md:flex-1 md:min-w-0 md:pl-2">
+              {category.description}
+            </p>
+          ) : null}
         </div>
       </div>
 

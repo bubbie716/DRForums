@@ -79,7 +79,11 @@ export function ForumScrollPersistence() {
         10
       );
 
-      if (currentScrollY > 0 || !Number.isFinite(previousScrollY) || previousScrollY <= 0) {
+      if (currentScrollY <= 0 && previousScrollY > 0) {
+        return;
+      }
+
+      if (currentScrollY > 0) {
         saveForumIndexScrollPosition(currentScrollY);
       }
     };

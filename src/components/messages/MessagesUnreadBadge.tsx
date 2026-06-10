@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { getMessagesUnreadDisplayCount } from "@/lib/messages/unread-count";
 
@@ -14,12 +15,28 @@ export function MessagesUnreadBadge({
 }: MessagesUnreadBadgeProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const unreadCount = getMessagesUnreadDisplayCount(
-    pathname,
-    searchParams.get("tab"),
-    unreadForumNotificationCount,
-    unreadDirectMessageCount
-  );
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/internal/maintenance-status")
+      .then((response) => response.json())
+      .then((data: { enabled?: boolean }) => {
+        setMaintenanceEnabled(data.enabled === true);
+      })
+      .catch(() => {});
+  }, [pathname]);
+
+  const totalUnread =
+    unreadForumNotificationCount + unreadDirectMessageCount;
+
+  const unreadCount = maintenanceEnabled
+    ? totalUnread
+    : getMessagesUnreadDisplayCount(
+        pathname,
+        searchParams.get("tab"),
+        unreadForumNotificationCount,
+        unreadDirectMessageCount
+      );
 
   if (unreadCount <= 0) {
     return null;

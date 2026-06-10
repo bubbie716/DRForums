@@ -5,10 +5,19 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import {
   getSessionUser,
-  canPost,
+  canUserPost,
   isModerator,
+  isUserBanned,
   MINECRAFT_LINK_REQUIRED_MESSAGE,
+  BAN_RESTRICTED_MESSAGE,
 } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import {
+  canCreateThread,
+  canModerateForum,
+  canReplyToThread,
+  canViewThread,
+} from "@/lib/forumAccess";
 import { generateThreadSlug } from "@/lib/slug";
 import {
   validatePostContent,
@@ -20,6 +29,7 @@ import {
   summarizePostReactions,
   type ToggleReactionResult,
 } from "@/lib/forum/reactions";
+import { createModerationLog, MODERATION_ACTIONS } from "@/lib/moderation-log";
 
 export type { ToggleReactionResult };
 import type { ReactionType } from "@prisma/client";
@@ -47,7 +57,11 @@ export async function createThread(
     return { success: false, error: "You must be logged in to create a thread." };
   }
 
-  if (!canPost(user)) {
+  if (await isUserBanned(user.id)) {
+    return { success: false, error: BAN_RESTRICTED_MESSAGE };
+  }
+
+  if (!(await canUserPost(user))) {
     return { success: false, error: MINECRAFT_LINK_REQUIRED_MESSAGE };
   }
 
@@ -63,11 +77,37 @@ export async function createThread(
 
   const forum = await prisma.forum.findUnique({
     where: { slug: forumSlug },
-    select: { id: true, slug: true },
+    select: {
+      id: true,
+      slug: true,
+      isVisible: true,
+      isLocked: true,
+      category: {
+        select: { isVisible: true },
+      },
+    },
   });
 
   if (!forum) {
     return { success: false, error: "Forum not found." };
+  }
+
+  if (!forum.isVisible || !forum.category.isVisible) {
+    return { success: false, error: "Forum not found." };
+  }
+
+  if (forum.isLocked) {
+    return {
+      success: false,
+      error: "This forum is locked. No new threads can be created.",
+    };
+  }
+
+  if (!(await canCreateThread(user.id, forum.id))) {
+    return {
+      success: false,
+      error: "You do not have permission to create threads in this forum.",
+    };
   }
 
   const trimmedTitle = title.trim();
@@ -124,7 +164,11 @@ export async function createReply(
     return { success: false, error: "You must be logged in to reply." };
   }
 
-  if (!canPost(user)) {
+  if (await isUserBanned(user.id)) {
+    return { success: false, error: BAN_RESTRICTED_MESSAGE };
+  }
+
+  if (!(await canUserPost(user))) {
     return { success: false, error: MINECRAFT_LINK_REQUIRED_MESSAGE };
   }
 
@@ -139,12 +183,23 @@ export async function createReply(
       id: true,
       authorId: true,
       isLocked: true,
-      forum: { select: { slug: true } },
+      forum: { select: { id: true, slug: true } },
     },
   });
 
   if (!thread) {
     return { success: false, error: "Thread not found." };
+  }
+
+  if (!(await canViewThread(user.id, thread.id))) {
+    return { success: false, error: "You do not have permission to view this thread." };
+  }
+
+  if (!(await canReplyToThread(user.id, thread.id))) {
+    return {
+      success: false,
+      error: "You do not have permission to reply in this forum.",
+    };
   }
 
   if (thread.isLocked) {
@@ -206,22 +261,49 @@ export async function createReply(
 
 export async function toggleThreadPin(threadId: string): Promise<ActionResult> {
   const user = await getSessionUser();
-  if (!user || !isModerator(user.role)) {
+  if (!user) {
     return { success: false, error: "Unauthorized." };
   }
 
   const thread = await prisma.thread.findUnique({
     where: { id: threadId },
-    select: { id: true, isPinned: true, forum: { select: { slug: true } } },
+    select: {
+      id: true,
+      title: true,
+      isPinned: true,
+      forum: { select: { id: true, slug: true, name: true } },
+    },
   });
 
   if (!thread) {
     return { success: false, error: "Thread not found." };
   }
 
+  if (
+    !(await canModerateForum(user.id, thread.forum.id)) ||
+    (!(await hasPermission(user.id, "forum.thread.pin")) && !isModerator(user.role))
+  ) {
+    return { success: false, error: "Unauthorized." };
+  }
+
+  const nextPinned = !thread.isPinned;
+
   await prisma.thread.update({
     where: { id: threadId },
-    data: { isPinned: !thread.isPinned },
+    data: { isPinned: nextPinned },
+  });
+
+  await createModerationLog({
+    actorId: user.id,
+    action: nextPinned
+      ? MODERATION_ACTIONS.THREAD_PINNED
+      : MODERATION_ACTIONS.THREAD_UNPINNED,
+    details: {
+      threadId,
+      title: thread.title,
+      forumSlug: thread.forum.slug,
+      forumName: thread.forum.name,
+    },
   });
 
   revalidatePath(`/thread/${threadId}`);
@@ -232,22 +314,49 @@ export async function toggleThreadPin(threadId: string): Promise<ActionResult> {
 
 export async function toggleThreadLock(threadId: string): Promise<ActionResult> {
   const user = await getSessionUser();
-  if (!user || !isModerator(user.role)) {
+  if (!user) {
     return { success: false, error: "Unauthorized." };
   }
 
   const thread = await prisma.thread.findUnique({
     where: { id: threadId },
-    select: { id: true, isLocked: true, forum: { select: { slug: true } } },
+    select: {
+      id: true,
+      title: true,
+      isLocked: true,
+      forum: { select: { id: true, slug: true, name: true } },
+    },
   });
 
   if (!thread) {
     return { success: false, error: "Thread not found." };
   }
 
+  if (
+    !(await canModerateForum(user.id, thread.forum.id)) ||
+    (!(await hasPermission(user.id, "forum.thread.lock")) && !isModerator(user.role))
+  ) {
+    return { success: false, error: "Unauthorized." };
+  }
+
+  const nextLocked = !thread.isLocked;
+
   await prisma.thread.update({
     where: { id: threadId },
-    data: { isLocked: !thread.isLocked },
+    data: { isLocked: nextLocked },
+  });
+
+  await createModerationLog({
+    actorId: user.id,
+    action: nextLocked
+      ? MODERATION_ACTIONS.THREAD_LOCKED
+      : MODERATION_ACTIONS.THREAD_UNLOCKED,
+    details: {
+      threadId,
+      title: thread.title,
+      forumSlug: thread.forum.slug,
+      forumName: thread.forum.name,
+    },
   });
 
   revalidatePath(`/thread/${threadId}`);

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getSessionUser } from "@/lib/auth";
 import { getPublicProfile } from "@/lib/forum/queries";
 import { formatDate } from "@/lib/utils";
 import { RoleBadge } from "@/components/forum/RoleBadge";
@@ -20,7 +21,8 @@ export async function generateMetadata({
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
-  const profile = await getPublicProfile(username);
+  const viewer = await getSessionUser();
+  const profile = await getPublicProfile(username, viewer?.id ?? null);
 
   if (!profile) {
     notFound();
@@ -48,7 +50,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 <h1 className="text-2xl font-extrabold text-text-dark">
                   {profile.username}
                 </h1>
-                <RoleBadge role={profile.role} />
+                {profile.displayRole && (
+                  <RoleBadge displayRole={profile.displayRole} />
+                )}
               </div>
               <p className="text-text-secondary mt-2">
                 Joined {formatDate(profile.createdAt)}

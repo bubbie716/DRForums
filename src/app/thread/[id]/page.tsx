@@ -2,7 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { UserProfileLink } from "@/components/profile/UserProfileLink";
 import { notFound } from "next/navigation";
-import { canPost, getSessionUser, isModerator } from "@/lib/auth";
+import { canPost, getSessionUser } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import {
+  canModerateForum,
+  canReplyToThread,
+  canViewThread,
+  getForumAccess,
+} from "@/lib/forumAccess";
 import { ThreadViewRecorder } from "@/components/forum/ThreadViewRecorder";
 import { getThreadById } from "@/lib/forum/queries";
 import { formatDate } from "@/lib/utils";
@@ -38,11 +45,30 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
     notFound();
   }
 
-  const canModerate = user ? isModerator(user.role) : false;
+  const allowed = await canViewThread(user?.id ?? null, thread.id);
+  if (!allowed) {
+    notFound();
+  }
+
+  const [forumAccess, canReply, canModerateForumAccess] = await Promise.all([
+    getForumAccess(user?.id ?? null, thread.forum.id),
+    user ? canReplyToThread(user.id, thread.id) : Promise.resolve(false),
+    user ? canModerateForum(user.id, thread.forum.id) : Promise.resolve(false),
+  ]);
+
+  const canModerate = !!(
+    user &&
+    canModerateForumAccess &&
+    ((await hasPermission(user.id, "forum.thread.lock")) ||
+      (await hasPermission(user.id, "forum.thread.pin")) ||
+      (await hasPermission(user.id, "forum.thread.move")))
+  );
+
   const canQuoteReply = !!(
     user &&
     canPost(user) &&
-    !thread.isLocked
+    !thread.isLocked &&
+    canReply
   );
   const replies = thread.posts.slice(1);
 
@@ -147,7 +173,19 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
                 </p>
               </div>
             ) : user ? (
-              canPost(user) ? (
+              !forumAccess.canReply ? (
+                <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-6 py-8 text-center">
+                  <p className="text-text-secondary font-medium">
+                    You do not have permission to reply in this forum.
+                  </p>
+                </div>
+              ) : !canReply ? (
+                <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-6 py-8 text-center">
+                  <p className="text-text-secondary font-medium">
+                    You can only reply to your own threads in this forum.
+                  </p>
+                </div>
+              ) : canPost(user) ? (
                 <ReplyForm threadId={thread.id} />
               ) : (
                 <MinecraftLinkRequiredNotice action="post replies" />

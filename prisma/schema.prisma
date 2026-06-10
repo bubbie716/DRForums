@@ -21,6 +21,9 @@ model User {
   minecraftUuid     String?   @unique
   minecraftUsername String?
   minecraftLinkedAt DateTime?
+  bio               String?
+  avatarUrl         String?
+  bannerUrl         String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -35,14 +38,133 @@ model User {
   mentionsSent               Mention[]                 @relation("MentionsSent")
   forumNotificationsReceived ForumNotification[]       @relation("ForumNotificationsReceived")
   forumNotificationsSent     ForumNotification[]       @relation("ForumNotificationsSent")
+  bans                       Ban[]                     @relation("BannedUser")
+  bansIssued                 Ban[]                     @relation("BannedBy")
+  bansLifted                 Ban[]                     @relation("LiftedBy")
+  userRoles                  UserRole[]
+  rolesAssigned              UserRole[]                @relation("RoleAssignedBy")
+  moderationLogsAsActor      ModerationLog[]           @relation("LogActor")
+  moderationLogsAsTarget     ModerationLog[]           @relation("LogTarget")
 
   @@map("users")
+}
+
+model Ban {
+  id           String    @id @default(cuid())
+  userId       String
+  bannedById   String
+  reason       String
+  internalNote String?
+  expiresAt    DateTime?
+  liftedAt     DateTime?
+  liftedById   String?
+  liftReason   String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user     User  @relation("BannedUser", fields: [userId], references: [id], onDelete: Cascade)
+  bannedBy User  @relation("BannedBy", fields: [bannedById], references: [id], onDelete: Cascade)
+  liftedBy User? @relation("LiftedBy", fields: [liftedById], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([bannedById])
+  @@index([expiresAt])
+  @@map("bans")
+}
+
+model AppRole {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  color       String?
+  priority    Int      @default(0)
+  isDefault   Boolean  @default(false)
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions           RolePermission[]
+  users                 UserRole[]
+  forumRolePermissions  ForumRolePermission[]
+
+  @@map("app_roles")
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  label       String
+  description String?
+  category    String
+
+  roles RolePermission[]
+
+  @@index([category])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(cuid())
+  roleId       String
+  permissionId String
+
+  role       AppRole    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id           String   @id @default(cuid())
+  userId       String
+  roleId       String
+  assignedById String?
+  createdAt    DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       AppRole  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedBy User?    @relation("RoleAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model ModerationLog {
+  id           String   @id @default(cuid())
+  actorId      String?
+  targetUserId String?
+  action       String
+  details      String?
+  createdAt    DateTime @default(now())
+
+  actor      User? @relation("LogActor", fields: [actorId], references: [id], onDelete: SetNull)
+  targetUser User? @relation("LogTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("moderation_logs")
 }
 
 enum ForumNotificationType {
   MENTION
   THREAD_REPLY
   POST_REACTION
+  ROLE_ASSIGNED
+  ROLE_REMOVED
 }
 
 model ForumNotification {
@@ -53,6 +175,7 @@ model ForumNotification {
   postId       String?
   threadId     String?
   reactionType ReactionType?
+  roleName     String?
   readAt       DateTime?
   createdAt    DateTime              @default(now())
 
@@ -135,13 +258,17 @@ model Session {
 model Category {
   id          String   @id @default(cuid())
   name        String
+  slug        String   @unique
   description String?
   sortOrder   Int      @default(0)
+  isVisible   Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  forums Forum[]
+  forums               Forum[]
+  forumRolePermissions ForumRolePermission[]
 
+  @@index([slug])
   @@map("categories")
 }
 
@@ -151,16 +278,45 @@ model Forum {
   slug        String   @unique
   description String?
   sortOrder   Int      @default(0)
+  isVisible   Boolean  @default(true)
+  isLocked    Boolean  @default(false)
   categoryId  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  threads  Thread[]
+  category             Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  threads              Thread[]
+  forumRolePermissions ForumRolePermission[]
 
   @@index([categoryId])
   @@index([slug])
   @@map("forums")
+}
+
+model ForumRolePermission {
+  id                  String   @id @default(cuid())
+  roleId              String
+  categoryId          String?
+  forumId             String?
+  canView             Boolean  @default(true)
+  canRead             Boolean  @default(true)
+  canCreateThreads    Boolean  @default(true)
+  canReply            Boolean  @default(true)
+  canViewOtherThreads Boolean  @default(true)
+  canModerate         Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  role     AppRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  forum    Forum?    @relation(fields: [forumId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, categoryId])
+  @@unique([roleId, forumId])
+  @@index([roleId])
+  @@index([categoryId])
+  @@index([forumId])
+  @@map("forum_role_permissions")
 }
 
 model Thread {
