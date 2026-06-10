@@ -2,7 +2,6 @@ import { getForumIndex } from "@/lib/forum/queries";
 import { CategorySection } from "@/components/forum/CategorySection";
 import { PostButton } from "@/components/forum/PostButton";
 import { HeroSection } from "@/components/home/HeroSection";
-import { ForumScrollRestore } from "@/components/forum/ForumScrollRestore";
 import { ForumScrollTracker } from "@/components/forum/ForumScrollTracker";
 import { canPost, getSessionUser } from "@/lib/auth";
 
@@ -25,7 +24,6 @@ export default async function ForumIndexPage() {
   return (
     <>
       <ForumScrollTracker />
-      <ForumScrollRestore />
       <HeroSection />
 
       <div id="forums" className="bg-surface scroll-mt-20">
