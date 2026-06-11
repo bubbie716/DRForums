@@ -63,7 +63,7 @@ export const SYSTEM_ROLE_DEFINITIONS = [
   {
     slug: SYSTEM_ROLE_SLUGS.CITIZEN,
     name: "Citizen",
-    description: "Verified members who have linked their Minecraft account.",
+    description: "Full forum members. Granted manually or by linking Minecraft.",
     color: "#15803d",
     priority: 6,
     isDefault: false,
@@ -104,6 +104,14 @@ export const MEMBER_ROLE_SLUGS = new Set<SystemRoleSlug>([
   SYSTEM_ROLE_SLUGS.TOURIST,
 ]);
 
+/** Roles that can post and use member features without linking Minecraft. */
+export const MINECRAFT_BYPASS_ROLE_SLUGS = new Set<SystemRoleSlug>([
+  SYSTEM_ROLE_SLUGS.FOUNDER,
+  SYSTEM_ROLE_SLUGS.SYSTEM_ADMINISTRATOR,
+  SYSTEM_ROLE_SLUGS.MODERATOR,
+  SYSTEM_ROLE_SLUGS.CITIZEN,
+]);
+
 export function isFullAccessRoleSlug(slug: string): boolean {
   return FULL_ACCESS_ROLE_SLUGS.has(slug as SystemRoleSlug);
 }
@@ -114,4 +122,8 @@ export function isStaffRoleSlug(slug: string): boolean {
 
 export function isMemberRoleSlug(slug: string): boolean {
   return MEMBER_ROLE_SLUGS.has(slug as SystemRoleSlug);
+}
+
+export function roleSlugBypassesMinecraftVerification(slug: string): boolean {
+  return MINECRAFT_BYPASS_ROLE_SLUGS.has(slug as SystemRoleSlug);
 }

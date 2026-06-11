@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useUnsavedNativeForm } from "@/hooks/useUnsavedNativeForm";
 import { useRouter } from "next/navigation";
 import { AdminNotice } from "@/components/admin/AdminNotice";
+import { useUnsavedChangesFlag } from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
 import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import {
@@ -52,6 +54,29 @@ export function RoleForm({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set(initial?.permissionIds ?? []));
+  const { formRef, syncDirtyState, markSaved, isDirty: nativeFormDirty } =
+    useUnsavedNativeForm();
+
+  const initialPermissionIds = useMemo(
+    () => new Set(initial?.permissionIds ?? []),
+    [initial?.permissionIds]
+  );
+
+  const permissionsDirty = useMemo(() => {
+    if (selected.size !== initialPermissionIds.size) {
+      return true;
+    }
+
+    for (const id of selected) {
+      if (!initialPermissionIds.has(id)) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [selected, initialPermissionIds]);
+
+  useUnsavedChangesFlag("role-form", nativeFormDirty || permissionsDirty);
 
   const { keyById, idByKey } = useMemo(() => {
     const keyByIdMap = new Map<string, string>();
@@ -128,6 +153,7 @@ export function RoleForm({
       return;
     }
 
+    markSaved();
     router.push(
       `/admin/roles?notice=${encodeURIComponent(result.message ?? "Role deleted.")}`
     );
@@ -136,7 +162,9 @@ export function RoleForm({
 
   return (
     <form
+      ref={formRef}
       className="space-y-6"
+      onChange={syncDirtyState}
       onSubmit={async (e) => {
         e.preventDefault();
         setError("");
@@ -161,11 +189,13 @@ export function RoleForm({
           return;
         }
         if (mode === "create") {
+          markSaved();
           router.push("/admin/roles");
           router.refresh();
           return;
         }
         setSuccess(result.message ?? "Role updated.");
+        markSaved();
         router.refresh();
       }}
     >

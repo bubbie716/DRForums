@@ -6,15 +6,21 @@ import { AdminNotice } from "@/components/admin/AdminNotice";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { COMING_SOON_SETTING_LABELS } from "@/lib/admin/copy";
 import { adminUpdateSiteSettings } from "@/lib/admin/settings-actions";
+import { useUnsavedNativeForm } from "@/hooks/useUnsavedNativeForm";
+import { useUnsavedChangesFlag } from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
 
 export function SiteSettingsForm({ settings }: { settings: Record<string, string> }) {
   const router = useRouter();
+  const { formRef, syncDirtyState, markSaved, isDirty } = useUnsavedNativeForm();
+  useUnsavedChangesFlag("site-settings", isDirty);
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   return (
     <form
+      ref={formRef}
       className="bg-white border border-border rounded-2xl shadow-warm p-5 md:p-6 space-y-6"
+      onChange={syncDirtyState}
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -25,6 +31,7 @@ export function SiteSettingsForm({ settings }: { settings: Record<string, string
           return;
         }
         setNotice({ type: "success", message: result.message ?? "Saved." });
+        markSaved();
         router.refresh();
       }}
     >

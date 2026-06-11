@@ -6,6 +6,8 @@ import { AdminNotice } from "@/components/admin/AdminNotice";
 import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { adminUpdateMaintenance } from "@/lib/admin/settings-actions";
+import { useUnsavedNativeForm } from "@/hooks/useUnsavedNativeForm";
+import { useUnsavedChangesFlag } from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
 
 type MaintenanceFormProps = {
   maintenanceMode: boolean;
@@ -14,12 +16,16 @@ type MaintenanceFormProps = {
 
 export function MaintenanceForm({ maintenanceMode, maintenanceMessage }: MaintenanceFormProps) {
   const router = useRouter();
+  const { formRef, syncDirtyState, markSaved, isDirty } = useUnsavedNativeForm();
+  useUnsavedChangesFlag("maintenance", isDirty);
   const [notice, setNotice] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
   return (
     <form
+      ref={formRef}
       className="bg-white border border-border rounded-2xl shadow-warm p-5 md:p-6 space-y-4"
+      onChange={syncDirtyState}
       onSubmit={async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -30,6 +36,7 @@ export function MaintenanceForm({ maintenanceMode, maintenanceMessage }: Mainten
           return;
         }
         setNotice({ type: "success", message: result.message ?? "Saved." });
+        markSaved();
         router.refresh();
       }}
     >

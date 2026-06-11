@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   createCategory,
@@ -15,6 +15,10 @@ import { SlugField } from "@/components/admin/SlugField";
 import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { formInputClassName } from "@/components/ui/fieldStyles";
+import {
+  useUnsavedChangesFlag,
+  useUnsavedChangesForm,
+} from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
 
 type CategoryFormProps = {
   mode: "create" | "edit";
@@ -41,6 +45,30 @@ export function CategoryForm({ mode, initialValues }: CategoryFormProps) {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { markSaved } = useUnsavedChangesForm("category-form");
+
+  const baseline = useMemo(
+    () => ({
+      name: initialValues?.name ?? "",
+      slug: initialValues?.slug ?? "",
+      description: initialValues?.description ?? "",
+      sortOrder: initialValues?.sortOrder ?? 0,
+      isVisible: initialValues?.isVisible ?? true,
+    }),
+    [initialValues]
+  );
+
+  const isDirty = useMemo(
+    () =>
+      name !== baseline.name ||
+      slug !== baseline.slug ||
+      description !== baseline.description ||
+      Number(sortOrder) !== baseline.sortOrder ||
+      isVisible !== baseline.isVisible,
+    [baseline, name, slug, description, sortOrder, isVisible]
+  );
+
+  useUnsavedChangesFlag("category-form", isDirty);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -66,6 +94,8 @@ export function CategoryForm({ mode, initialValues }: CategoryFormProps) {
       setLoading(false);
       return;
     }
+
+    markSaved();
 
     if (mode === "edit") {
       setSuccess("Category updated.");
@@ -114,6 +144,7 @@ export function CategoryForm({ mode, initialValues }: CategoryFormProps) {
       )
     );
 
+    markSaved();
     router.push(`/admin/forums?notice=${notice}`);
     router.refresh();
   }

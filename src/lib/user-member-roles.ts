@@ -31,6 +31,10 @@ export async function syncMemberRoleForUser(userId: string): Promise<void> {
     return;
   }
 
+  const hasCitizenRole = user.userRoles.some(
+    (assignment) => assignment.role.slug === SYSTEM_ROLE_SLUGS.CITIZEN
+  );
+
   const [touristRole, citizenRole] = await Promise.all([
     prisma.appRole.findUnique({
       where: { slug: SYSTEM_ROLE_SLUGS.TOURIST },
@@ -43,6 +47,17 @@ export async function syncMemberRoleForUser(userId: string): Promise<void> {
   ]);
 
   if (!touristRole || !citizenRole) {
+    return;
+  }
+
+  if (hasCitizenRole) {
+    await prisma.userRole.deleteMany({
+      where: {
+        userId,
+        roleId: touristRole.id,
+      },
+    });
+    clearPermissionCache(userId);
     return;
   }
 
@@ -67,6 +82,73 @@ export async function syncMemberRoleForUser(userId: string): Promise<void> {
       create: {
         userId,
         roleId: targetRoleId,
+      },
+      update: {},
+    }),
+  ]);
+
+  clearPermissionCache(userId);
+}
+
+export async function demoteMemberToTouristAfterMinecraftUnlink(
+  userId: string
+): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      userRoles: {
+        include: {
+          role: {
+            select: { slug: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) {
+    return;
+  }
+
+  const hasStaffRole = user.userRoles.some((assignment) =>
+    isStaffRoleSlug(assignment.role.slug)
+  );
+  if (hasStaffRole) {
+    return;
+  }
+
+  const [touristRole, citizenRole] = await Promise.all([
+    prisma.appRole.findUnique({
+      where: { slug: SYSTEM_ROLE_SLUGS.TOURIST },
+      select: { id: true },
+    }),
+    prisma.appRole.findUnique({
+      where: { slug: SYSTEM_ROLE_SLUGS.CITIZEN },
+      select: { id: true },
+    }),
+  ]);
+
+  if (!touristRole || !citizenRole) {
+    return;
+  }
+
+  await prisma.$transaction([
+    prisma.userRole.deleteMany({
+      where: {
+        userId,
+        roleId: citizenRole.id,
+      },
+    }),
+    prisma.userRole.upsert({
+      where: {
+        userId_roleId: {
+          userId,
+          roleId: touristRole.id,
+        },
+      },
+      create: {
+        userId,
+        roleId: touristRole.id,
       },
       update: {},
     }),

@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createForum, deleteForum, updateForum } from "@/lib/admin/actions";
 import { SlugField } from "@/components/admin/SlugField";
 import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { formInputClassName } from "@/components/ui/fieldStyles";
+import {
+  useUnsavedChangesFlag,
+  useUnsavedChangesForm,
+} from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
 
 type CategoryOption = {
   id: string;
@@ -50,6 +54,43 @@ export function ForumForm({
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { markSaved } = useUnsavedChangesForm("forum-form");
+
+  const baseline = useMemo(
+    () => ({
+      categoryId: initialValues?.categoryId ?? defaultCategoryId ?? categories[0]?.id ?? "",
+      name: initialValues?.name ?? "",
+      slug: initialValues?.slug ?? "",
+      description: initialValues?.description ?? "",
+      sortOrder: initialValues?.sortOrder ?? 0,
+      isVisible: initialValues?.isVisible ?? true,
+      isLocked: initialValues?.isLocked ?? false,
+    }),
+    [initialValues, defaultCategoryId, categories]
+  );
+
+  const isDirty = useMemo(
+    () =>
+      categoryId !== baseline.categoryId ||
+      name !== baseline.name ||
+      slug !== baseline.slug ||
+      description !== baseline.description ||
+      Number(sortOrder) !== baseline.sortOrder ||
+      isVisible !== baseline.isVisible ||
+      isLocked !== baseline.isLocked,
+    [
+      baseline,
+      categoryId,
+      name,
+      slug,
+      description,
+      sortOrder,
+      isVisible,
+      isLocked,
+    ]
+  );
+
+  useUnsavedChangesFlag("forum-form", isDirty);
 
   const selectedCategory = categories.find((category) => category.id === categoryId);
 
@@ -79,6 +120,8 @@ export function ForumForm({
       setLoading(false);
       return;
     }
+
+    markSaved();
 
     if (mode === "edit") {
       setSuccess("Subcategory updated.");
@@ -110,6 +153,7 @@ export function ForumForm({
       return;
     }
 
+    markSaved();
     router.push("/admin/forums");
     router.refresh();
   }

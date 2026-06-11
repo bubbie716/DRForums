@@ -11,6 +11,7 @@ import {
 } from "@/lib/permissions";
 import { getAllRequiredPermissions } from "@/lib/permissions/requirements";
 import { getActiveBan, BAN_RESTRICTED_MESSAGE } from "@/lib/bans";
+import { roleSlugBypassesMinecraftVerification } from "@/lib/system-roles";
 
 export { BAN_RESTRICTED_MESSAGE };
 
@@ -27,6 +28,7 @@ export type SessionUser = {
   username: string;
   role: Role;
   minecraftUuid: string | null;
+  bypassesMinecraftVerification: boolean;
 };
 
 export const MINECRAFT_LINK_REQUIRED_MESSAGE =
@@ -145,6 +147,13 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
           username: true,
           role: true,
           minecraftUuid: true,
+          userRoles: {
+            include: {
+              role: {
+                select: { slug: true },
+              },
+            },
+          },
         },
       },
     },
@@ -159,7 +168,21 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
     return null;
   }
 
-  return session.user;
+  const { user } = session;
+  const bypassesMinecraftVerification =
+    user.role === "ADMIN" ||
+    user.role === "MODERATOR" ||
+    user.userRoles.some((assignment) =>
+      roleSlugBypassesMinecraftVerification(assignment.role.slug)
+    );
+
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    minecraftUuid: user.minecraftUuid,
+    bypassesMinecraftVerification,
+  };
 });
 
 export async function destroySession(token: string): Promise<void> {
@@ -181,7 +204,7 @@ export function canPost(user: SessionUser): boolean {
     return true;
   }
 
-  return Boolean(user.minecraftUuid) || isAdmin(user.role);
+  return Boolean(user.minecraftUuid) || user.bypassesMinecraftVerification;
 }
 
 export async function requireAdmin(): Promise<SessionUser> {

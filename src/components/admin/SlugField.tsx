@@ -24,7 +24,7 @@ export function SlugField({
   slugLabel = "URL name",
   slugPrefix,
 }: SlugFieldProps) {
-  const slugManuallyEdited = useRef(false);
+  const slugManuallyEdited = useRef(Boolean(slug.trim()));
 
   useEffect(() => {
     if (slugManuallyEdited.current) {

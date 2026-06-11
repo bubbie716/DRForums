@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   deleteCategory,
   deleteForum,
@@ -22,6 +22,10 @@ import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { cn } from "@/lib/utils";
+import {
+  useUnsavedChangesFlag,
+  useUnsavedChangesForm,
+} from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
 
 type AdminForum = {
   id: string;
@@ -126,6 +130,7 @@ function buildForumDrafts(categories: AdminCategory[]) {
 
 export function ForumManagementList({ categories }: ForumManagementListProps) {
   const router = useRouter();
+  const { markSaved } = useUnsavedChangesForm("forum-management");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
@@ -135,6 +140,21 @@ export function ForumManagementList({ categories }: ForumManagementListProps) {
   const [forumDrafts, setForumDrafts] = useState<Record<string, ForumDraft>>(() =>
     buildForumDrafts(categories)
   );
+
+  const baselineCategoryDrafts = useMemo(
+    () => buildCategoryDrafts(categories),
+    [categories]
+  );
+  const baselineForumDrafts = useMemo(() => buildForumDrafts(categories), [categories]);
+
+  const hasDraftChanges = useMemo(
+    () =>
+      JSON.stringify(categoryDrafts) !== JSON.stringify(baselineCategoryDrafts) ||
+      JSON.stringify(forumDrafts) !== JSON.stringify(baselineForumDrafts),
+    [categoryDrafts, forumDrafts, baselineCategoryDrafts, baselineForumDrafts]
+  );
+
+  useUnsavedChangesFlag("forum-management", hasDraftChanges);
 
   useEffect(() => {
     setCategoryDrafts(buildCategoryDrafts(categories));
@@ -158,6 +178,9 @@ export function ForumManagementList({ categories }: ForumManagementListProps) {
     }
 
     setPendingKey(null);
+    if (key.startsWith("cat-save-") || key.startsWith("forum-save-")) {
+      markSaved();
+    }
     router.refresh();
   }
 

@@ -13,7 +13,11 @@ import {
 import { createRoleChangeNotification } from "@/lib/forum-notifications/create";
 import { createModerationLog, MODERATION_ACTIONS } from "@/lib/moderation-log";
 import { getActiveBan } from "@/lib/bans";
-import { syncUserRolesAfterChange } from "@/lib/user-member-roles";
+import {
+  demoteMemberToTouristAfterMinecraftUnlink,
+  syncUserRolesAfterChange,
+} from "@/lib/user-member-roles";
+import { isStaffRoleSlug } from "@/lib/system-roles";
 import {
   isFullAccessRoleSlug,
   SYSTEM_ROLE_SLUGS,
@@ -124,7 +128,18 @@ export async function adminUnlinkMinecraft(
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true, minecraftUsername: true },
+    select: {
+      id: true,
+      username: true,
+      minecraftUsername: true,
+      userRoles: {
+        include: {
+          role: {
+            select: { slug: true },
+          },
+        },
+      },
+    },
   });
   if (!target) return { success: false, error: "User not found." };
 
@@ -137,7 +152,15 @@ export async function adminUnlinkMinecraft(
     },
   });
 
-  await syncUserRolesAfterChange(userId);
+  const hasStaffRole = target.userRoles.some((assignment) =>
+    isStaffRoleSlug(assignment.role.slug)
+  );
+
+  if (hasStaffRole) {
+    await syncUserRolesAfterChange(userId);
+  } else {
+    await demoteMemberToTouristAfterMinecraftUnlink(userId);
+  }
 
   await createModerationLog({
     actorId: actor.id,

@@ -17,6 +17,10 @@ import {
 } from "@/lib/forum-access-presets";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { formInputClassName } from "@/components/ui/fieldStyles";
+import {
+  useUnsavedChangesFlag,
+  useUnsavedChangesForm,
+} from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
 
 type ForumRoleAccessSectionProps = {
   scope: "category" | "forum";
@@ -69,6 +73,7 @@ export function ForumRoleAccessSection({
   initialRows,
 }: ForumRoleAccessSectionProps) {
   const router = useRouter();
+  const { markSaved } = useUnsavedChangesForm("forum-role-access");
   const [rows, setRows] = useState<RowState[]>(() =>
     initialRows.map((row) => ({
       roleId: row.roleId,
@@ -84,6 +89,40 @@ export function ForumRoleAccessSection({
       canModerate: row.canModerate,
     }))
   );
+
+  const baselineSnapshot = useMemo(
+    () =>
+      JSON.stringify(
+        initialRows.map((row) => ({
+          roleId: row.roleId,
+          canView: row.canView,
+          canRead: row.canRead,
+          canCreateThreads: row.canCreateThreads,
+          canReply: row.canReply,
+          canViewOtherThreads: row.canViewOtherThreads,
+          canModerate: row.canModerate,
+        }))
+      ),
+    [initialRows]
+  );
+
+  const rowsSnapshot = useMemo(
+    () =>
+      JSON.stringify(
+        rows.map((row) => ({
+          roleId: row.roleId,
+          canView: row.canView,
+          canRead: row.canRead,
+          canCreateThreads: row.canCreateThreads,
+          canReply: row.canReply,
+          canViewOtherThreads: row.canViewOtherThreads,
+          canModerate: row.canModerate,
+        }))
+      ),
+    [rows]
+  );
+
+  useUnsavedChangesFlag("forum-role-access", rowsSnapshot !== baselineSnapshot);
 
   useEffect(() => {
     setRows(
@@ -174,6 +213,7 @@ export function ForumRoleAccessSection({
 
     setSuccess("Access rules saved.");
     setSaving(false);
+    markSaved();
     router.refresh();
   }
 
@@ -205,6 +245,7 @@ export function ForumRoleAccessSection({
 
     setSuccess("Quick setup applied.");
     setApplyingPreset(false);
+    markSaved();
     router.refresh();
   }
 
