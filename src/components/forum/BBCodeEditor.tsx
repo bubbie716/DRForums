@@ -1294,17 +1294,18 @@ export function BBCodeEditor({
       return;
     }
 
+    const resizeTarget: HTMLImageElement = image;
     const startX = event.clientX;
-    const startWidth = image.getBoundingClientRect().width;
+    const startWidth = resizeTarget.getBoundingClientRect().width;
 
     function handleMouseMove(moveEvent: MouseEvent) {
       const nextWidth = Math.max(
         MIN_IMAGE_WIDTH,
         Math.min(MAX_IMAGE_WIDTH, startWidth + (moveEvent.clientX - startX))
       );
-      image.style.width = `${Math.round(nextWidth)}px`;
-      image.style.height = "auto";
-      image.style.maxWidth = "100%";
+      resizeTarget.style.width = `${Math.round(nextWidth)}px`;
+      resizeTarget.style.height = "auto";
+      resizeTarget.style.maxWidth = "100%";
       updateSelectedImageOverlay();
     }
 
