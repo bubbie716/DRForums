@@ -1,4 +1,3 @@
-import { hasNonQuoteContent } from "@/lib/quoteParser";
 import { stripBBCode } from "@/lib/bbcode";
 
 export type ValidationResult =
@@ -64,13 +63,6 @@ export function validateReplyContent(content: string): ValidationResult {
 
   if (!trimmed) {
     return { valid: false, error: "Reply cannot be empty." };
-  }
-
-  if (!hasNonQuoteContent(trimmed)) {
-    return {
-      valid: false,
-      error: "Reply must include your own message, not just a quote.",
-    };
   }
 
   if (trimmed.length > MAX_CONTENT_LENGTH) {

@@ -924,6 +924,8 @@ export function BBCodeEditor({
   const [fontSizeInput, setFontSizeInput] = useState(String(DEFAULT_FONT_SIZE));
   const colorButtonRef = useRef<HTMLButtonElement>(null);
   const colorMenuRef = useRef<HTMLDivElement>(null);
+  const imageUrlInputRef = useRef<HTMLInputElement>(null);
+  const linkUrlInputRef = useRef<HTMLInputElement>(null);
 
   const colorMenuPosition = useAnchoredFixedPosition({
     anchorRef: colorButtonRef,
@@ -942,6 +944,28 @@ export function BBCodeEditor({
   useEffect(() => {
     setPortalReady(true);
   }, []);
+
+  useEffect(() => {
+    if (!imageModalOpen) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      imageUrlInputRef.current?.focus({ preventScroll: true });
+      restoreLockedToolbarScroll();
+    });
+  }, [imageModalOpen]);
+
+  useEffect(() => {
+    if (!linkModalOpen) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      linkUrlInputRef.current?.focus({ preventScroll: true });
+      restoreLockedToolbarScroll();
+    });
+  }, [linkModalOpen]);
 
   useEffect(() => {
     if (!selectedImageOverlay) {
@@ -1803,6 +1827,8 @@ export function BBCodeEditor({
   }
 
   function openLinkModal() {
+    lockToolbarScroll();
+
     if (mode === "bbcode") {
       const textarea = textareaRef.current;
       if (!textarea) {
@@ -1839,10 +1865,15 @@ export function BBCodeEditor({
     setLinkTitle("");
     setLinkContext(null);
     savedRangeRef.current = null;
+    requestAnimationFrame(() => {
+      restoreLockedToolbarScroll();
+      focusWriteEditor();
+    });
   }
 
   function handleLinkSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    event.stopPropagation();
 
     const url = linkUrl.trim();
     if (!url || !linkContext) {
@@ -1869,9 +1900,14 @@ export function BBCodeEditor({
     setImageModalOpen(false);
     setImageUrl("");
     setImageError("");
+    requestAnimationFrame(() => {
+      restoreLockedToolbarScroll();
+      focusWriteEditor();
+    });
   }
 
   function openImageModal() {
+    lockToolbarScroll();
     if (mode === "write") {
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
@@ -1910,6 +1946,7 @@ export function BBCodeEditor({
 
   function handleImageInsert(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    event.stopPropagation();
     setImageError("");
 
     if (!isValidImageUrl(imageUrl)) {
@@ -2303,6 +2340,7 @@ export function BBCodeEditor({
               />
               <form
                 onSubmit={handleImageInsert}
+                onKeyDown={(event) => event.stopPropagation()}
                 className="relative w-full max-w-md bg-white border border-border rounded-2xl shadow-warm-lg p-6 space-y-4"
                 role="dialog"
                 aria-modal="true"
@@ -2318,6 +2356,7 @@ export function BBCodeEditor({
                 <div>
                   <FieldLabel className="mb-2">Image URL</FieldLabel>
                   <input
+                    ref={imageUrlInputRef}
                     type="text"
                     value={imageUrl}
                     onChange={(event) => {
@@ -2326,7 +2365,6 @@ export function BBCodeEditor({
                     }}
                     placeholder="https://example.com/image.png"
                     required
-                    autoFocus
                     className={formInputClassName}
                   />
                 </div>
@@ -2379,6 +2417,7 @@ export function BBCodeEditor({
               />
               <form
                 onSubmit={handleLinkSubmit}
+                onKeyDown={(event) => event.stopPropagation()}
                 className="relative w-full max-w-md bg-white border border-border rounded-2xl shadow-warm-lg p-6 space-y-4"
                 role="dialog"
                 aria-modal="true"
@@ -2394,12 +2433,12 @@ export function BBCodeEditor({
                 <div>
                   <FieldLabel className="mb-2">URL</FieldLabel>
                   <input
+                    ref={linkUrlInputRef}
                     type="text"
                     value={linkUrl}
                     onChange={(event) => setLinkUrl(event.target.value)}
                     placeholder="https://example.com"
                     required
-                    autoFocus
                     className={formInputClassName}
                   />
                 </div>

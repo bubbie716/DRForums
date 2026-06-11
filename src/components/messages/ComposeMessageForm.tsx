@@ -245,12 +245,10 @@ export function ComposeMessageForm({
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
             required
-            minLength={5}
             maxLength={200}
             placeholder="What is this message about?"
             className={formInputClassName}
           />
-          <p className="mt-1 text-xs text-text-secondary">Minimum 5 characters.</p>
         </div>
 
         <div>

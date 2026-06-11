@@ -11,6 +11,24 @@ const IMG_PATTERN = /\[img(?:=(\d+))?\]([\s\S]*?)\[\/img\]/gi;
 const HR_PATTERN = /\[hr\]/gi;
 const INLINE_TAG_PATTERN = /\[(\/?)(b|i|u|s|color|size)(?:=([^\]]*))?\]/gi;
 
+function normalizeQuoteUsername(raw: string | undefined): string | null {
+  const cleaned = (raw ?? "")
+    .replace(/\s*said:\s*$/i, "")
+    .trim()
+    .replace(/:+$/, "")
+    .trim();
+
+  if (!cleaned || cleaned.toLowerCase() === "quote") {
+    return null;
+  }
+
+  return cleaned;
+}
+
+function quoteLabelFromUsername(username: string): string {
+  return `${escapeHtml(username)}:`;
+}
+
 const ALLOWED_TAGS = new Set([
   "strong",
   "em",
@@ -351,11 +369,12 @@ function parseToHtml(input: string): string {
       QUOTE_PATTERN,
       (_match, username: string | undefined, inner: string) => {
         const body = parseToHtml(inner.trim());
-        if (username?.trim()) {
-          const label = escapeHtml(username.trim());
+        const normalizedUsername = normalizeQuoteUsername(username);
+        if (normalizedUsername) {
+          const label = quoteLabelFromUsername(normalizedUsername);
           return reserveRenderedBlock(
             renderedBlocks,
-            `<blockquote class="bbcode-quote"><p class="bbcode-quote-label">${label} said:</p><div class="bbcode-quote-body">${body}</div></blockquote>`
+            `<blockquote class="bbcode-quote"><p class="bbcode-quote-label">${label}</p><div class="bbcode-quote-body">${body}</div></blockquote>`
           );
         }
         return reserveRenderedBlock(
@@ -877,8 +896,8 @@ function serializeNode(node: ChildNode): string {
       const label = element.querySelector(".bbcode-quote-label")?.textContent ?? "";
       const bodyNode = element.querySelector(".bbcode-quote-body");
       const body = bodyNode ? serializeElementChildren(bodyNode) : children;
-      const username = label.replace(/\s*said:\s*$/i, "").trim();
-      if (username && username !== "Quote") {
+      const username = normalizeQuoteUsername(label);
+      if (username) {
         return `[quote="${username}"]${body}[/quote]`;
       }
       return `[quote]${body}[/quote]`;
