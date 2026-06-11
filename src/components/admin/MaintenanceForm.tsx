@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminNotice } from "@/components/admin/AdminNotice";
+import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { adminUpdateMaintenance } from "@/lib/admin/settings-actions";
 
@@ -39,7 +40,7 @@ export function MaintenanceForm({ maintenanceMode, maintenanceMessage }: Mainten
       </label>
       <div>
         <FieldLabel>Maintenance message</FieldLabel>
-        <textarea
+        <AutoResizeTextarea
           name="maintenanceMessage"
           rows={4}
           defaultValue={maintenanceMessage}

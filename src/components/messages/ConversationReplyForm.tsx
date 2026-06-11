@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { replyToConversation } from "@/lib/messages/actions";
-import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { BBCodeEditor } from "@/components/forum/BBCodeEditor";
 import { useQuoteReply } from "@/components/shared/QuoteReplyContext";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +69,7 @@ export function ConversationReplyForm({
         </div>
       )}
 
-      <MentionTextarea
+      <BBCodeEditor
         value={content}
         onChange={(event) => {
           setContent(event.target.value);

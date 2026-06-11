@@ -2,6 +2,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { formInputClassName } from "@/components/ui/fieldStyles";
+import { syncTextareaHeight } from "@/lib/autoResizeField";
 import { cn } from "@/lib/utils";
 
 export const textareaClassName = cn(
@@ -11,11 +12,6 @@ export const textareaClassName = cn(
 
 type AutoResizeTextareaProps =
   React.TextareaHTMLAttributes<HTMLTextAreaElement>;
-
-function syncTextareaHeight(textarea: HTMLTextAreaElement) {
-  textarea.style.height = "auto";
-  textarea.style.height = `${textarea.scrollHeight}px`;
-}
 
 export const AutoResizeTextarea = forwardRef<
   HTMLTextAreaElement,

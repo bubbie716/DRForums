@@ -88,6 +88,40 @@ export async function requirePermission(
   }
 }
 
+export async function getUsersDisplayRoles(
+  userIds: string[]
+): Promise<Map<string, { name: string; color: string | null }>> {
+  const uniqueIds = [...new Set(userIds)];
+  if (uniqueIds.length === 0) {
+    return new Map();
+  }
+
+  const assignments = await prisma.userRole.findMany({
+    where: { userId: { in: uniqueIds } },
+    include: {
+      role: {
+        select: {
+          name: true,
+          color: true,
+        },
+      },
+    },
+    orderBy: { role: { priority: "asc" } },
+  });
+
+  const map = new Map<string, { name: string; color: string | null }>();
+  for (const assignment of assignments) {
+    if (!map.has(assignment.userId)) {
+      map.set(assignment.userId, {
+        name: assignment.role.name,
+        color: assignment.role.color,
+      });
+    }
+  }
+
+  return map;
+}
+
 export const getUserDisplayRole = cache(async (userId: string) => {
   const assignments = await prisma.userRole.findMany({
     where: { userId },

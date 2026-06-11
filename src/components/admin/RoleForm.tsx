@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminNotice } from "@/components/admin/AdminNotice";
+import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import {
   adminCreateRole,
@@ -187,7 +188,7 @@ export function RoleForm({
         </div>
         <div className="sm:col-span-2">
           <FieldLabel>Description</FieldLabel>
-          <textarea name="description" rows={2} defaultValue={initial?.description} className="form-field mt-1" />
+          <AutoResizeTextarea name="description" rows={2} defaultValue={initial?.description} className="form-field mt-1" />
         </div>
         <div className="sm:col-span-2">
           <FieldLabel>Badge color</FieldLabel>

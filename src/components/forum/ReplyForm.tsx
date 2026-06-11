@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createReply } from "@/lib/forum/actions";
-import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { BBCodeEditor } from "@/components/forum/BBCodeEditor";
 import { useQuoteReply } from "@/components/shared/QuoteReplyContext";
 
 type ReplyFormProps = {
@@ -62,7 +62,7 @@ export function ReplyForm({ threadId }: ReplyFormProps) {
         </div>
       )}
 
-      <MentionTextarea
+      <BBCodeEditor
         value={content}
         onChange={(event) => {
           setContent(event.target.value);

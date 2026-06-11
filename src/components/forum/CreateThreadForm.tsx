@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createThread } from "@/lib/forum/actions";
-import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { BBCodeEditor } from "@/components/forum/BBCodeEditor";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { formInputClassName } from "@/components/ui/fieldStyles";
 
@@ -62,7 +62,7 @@ export function CreateThreadForm({ forumSlug }: CreateThreadFormProps) {
 
         <div className="space-y-2">
           <FieldLabel>Content</FieldLabel>
-          <MentionTextarea
+          <BBCodeEditor
             id="content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -71,7 +71,9 @@ export function CreateThreadForm({ forumSlug }: CreateThreadFormProps) {
             minLength={10}
             placeholder="Share your thoughts… Use @ to mention someone"
           />
-          <p className="text-xs text-text-secondary">Minimum 10 characters.</p>
+          <p className="text-xs text-text-secondary">
+            Minimum 10 characters of text (BBCode tags don&apos;t count).
+          </p>
         </div>
 
         <div className="flex justify-stretch md:justify-end gap-3 pt-2">

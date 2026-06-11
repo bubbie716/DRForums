@@ -1,4 +1,5 @@
 import { hasNonQuoteContent } from "@/lib/quoteParser";
+import { stripBBCode } from "@/lib/bbcode";
 
 export type ValidationResult =
   | { valid: true }
@@ -40,7 +41,8 @@ export function validatePostContent(content: string): ValidationResult {
     return { valid: false, error: "Content is required." };
   }
 
-  if (trimmed.length < MIN_CONTENT_LENGTH) {
+  const meaningfulLength = stripBBCode(trimmed).trim().length;
+  if (meaningfulLength < MIN_CONTENT_LENGTH) {
     return {
       valid: false,
       error: `Content must be at least ${MIN_CONTENT_LENGTH} characters.`,

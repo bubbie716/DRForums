@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminNotice } from "@/components/admin/AdminNotice";
+import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { adminCreateBan } from "@/lib/admin/ban-actions";
 import { FORUM_BAN_SCOPE_NOTE } from "@/lib/ban-copy";
@@ -47,11 +48,11 @@ export function CreateBanForm({ defaultUserId = "" }: { defaultUserId?: string }
       </div>
       <div>
         <FieldLabel>Forum ban reason</FieldLabel>
-        <textarea name="reason" required rows={3} className="form-field mt-1" placeholder="Reason shown to the user on the website" />
+        <AutoResizeTextarea name="reason" required rows={3} className="form-field mt-1" placeholder="Reason shown to the user on the website" />
       </div>
       <div>
         <FieldLabel>Internal note (optional)</FieldLabel>
-        <textarea name="internalNote" rows={2} className="form-field mt-1" placeholder="Staff-only note, not shown to the user" />
+        <AutoResizeTextarea name="internalNote" rows={2} className="form-field mt-1" placeholder="Staff-only note, not shown to the user" />
       </div>
       <div>
         <FieldLabel>Duration</FieldLabel>

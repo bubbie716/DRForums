@@ -10,6 +10,8 @@ import { MessageReactions } from "@/components/messages/MessageReactions";
 import { RenderedContent } from "@/components/forum/RenderedContent";
 import { CopyPermalinkButton } from "@/components/shared/CopyPermalinkButton";
 import { QuoteReplyButton } from "@/components/shared/QuoteReplyButton";
+import { RoleBadge } from "@/components/forum/RoleBadge";
+import type { DisplayRole } from "@/lib/display-role";
 
 type MessageThreadProps = {
   conversationId: string;
@@ -20,6 +22,7 @@ type MessageThreadProps = {
     sender: {
       id: string;
       username: string;
+      displayRole: DisplayRole | null;
     };
     reactions: { type: ReactionType; userId: string }[];
   }[];
@@ -69,11 +72,12 @@ export function MessageThread({
             )}
           >
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-border/60">
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
                 <UserProfileLink
                   username={message.sender.username}
                   className="font-bold text-text-dark"
                 />
+                <RoleBadge displayRole={message.sender.displayRole} />
                 {isOwnMessage && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow/50 text-accent-dark border border-accent/20">
                     You

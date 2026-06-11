@@ -11,12 +11,12 @@ import { RoleBadge } from "./RoleBadge";
 import { RenderedContent } from "@/components/forum/RenderedContent";
 import { CopyPermalinkButton } from "@/components/shared/CopyPermalinkButton";
 import { QuoteReplyButton } from "@/components/shared/QuoteReplyButton";
-import type { Role } from "@prisma/client";
+import type { DisplayRole } from "@/lib/display-role";
 
 type PostAuthor = {
   id: string;
   username: string;
-  role: Role;
+  displayRole: DisplayRole | null;
   createdAt: Date;
   minecraftUsername: string | null;
 };
@@ -59,52 +59,52 @@ export function PostCard({
       className="bg-white border border-border rounded-2xl shadow-warm overflow-hidden scroll-mt-24"
     >
       <div className="flex flex-col sm:flex-row">
-        <aside className="sm:w-44 shrink-0 bg-surface border-b sm:border-b-0 sm:border-r border-border px-3 py-2 sm:px-5 sm:py-5 text-center sm:text-left">
-          <div className="flex sm:hidden items-center gap-2.5 min-w-0">
+        <aside className="sm:w-48 shrink-0 bg-surface border-b sm:border-b-0 sm:border-r border-border px-4 py-3 sm:px-4 sm:py-6">
+          <div className="profile-author-block flex sm:hidden items-center gap-3 min-w-0">
             <MinecraftHead
               seed={post.author.id}
               minecraftUsername={post.author.minecraftUsername}
               profileUsername={post.author.username}
-              size={32}
+              size={36}
             />
-            <div className="profile-author-block flex items-center gap-2 min-w-0 flex-wrap">
+            <div className="min-w-0 flex flex-col gap-1">
+              <div className="flex items-center gap-2 min-w-0 flex-wrap">
+                <UserProfileLink
+                  username={post.author.username}
+                  className="text-sm font-bold text-text-dark truncate"
+                />
+                {isThreadOp && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
+                    OP
+                  </span>
+                )}
+              </div>
+              <RoleBadge displayRole={post.author.displayRole} />
+            </div>
+          </div>
+
+          <div className="profile-author-block hidden sm:flex flex-col items-center gap-2.5 text-center w-full">
+            <MinecraftHead
+              seed={post.author.id}
+              minecraftUsername={post.author.minecraftUsername}
+              profileUsername={post.author.username}
+              size={52}
+            />
+            <div className="flex items-center justify-center gap-2 max-w-full">
               <UserProfileLink
                 username={post.author.username}
-                className="text-sm font-bold text-text-dark truncate"
+                className="font-bold text-text-dark break-words leading-tight"
               />
-              <RoleBadge role={post.author.role} />
               {isThreadOp && (
-                <span className="text-[10px] font-bold uppercase tracking-wider text-accent">
+                <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-accent">
                   OP
                 </span>
               )}
             </div>
-          </div>
-
-          <div className="hidden sm:block">
-            <div className="profile-author-block flex flex-col items-center sm:items-start">
-              <MinecraftHead
-                seed={post.author.id}
-                minecraftUsername={post.author.minecraftUsername}
-                profileUsername={post.author.username}
-                size={48}
-              />
-              <UserProfileLink
-                username={post.author.username}
-                className="mt-3 font-bold text-text-dark"
-              />
-            </div>
-            <div className="mt-2 flex justify-center sm:justify-start">
-              <RoleBadge role={post.author.role} />
-            </div>
-            <p className="mt-3 text-xs text-text-secondary">
+            <RoleBadge displayRole={post.author.displayRole} />
+            <p className="text-xs text-text-secondary">
               Joined {formatDate(post.author.createdAt).split(",")[0]}
             </p>
-            {isThreadOp && (
-              <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-accent">
-                OP
-              </p>
-            )}
           </div>
         </aside>
 

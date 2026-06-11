@@ -18,6 +18,11 @@ import {
   isFullAccessRoleSlug,
   SYSTEM_ROLE_SLUGS,
 } from "@/lib/system-roles";
+import {
+  canActorManageRolePriority,
+  getActorTopRolePriority,
+  roleHierarchyError,
+} from "@/lib/role-hierarchy";
 import type { Role as LegacyRole } from "@prisma/client";
 
 function legacyRoleForSlug(slug: string): LegacyRole {
@@ -161,6 +166,11 @@ export async function adminAssignRole(
   const role = await prisma.appRole.findUnique({ where: { id: roleId } });
   if (!role) return { success: false, error: "Role not found." };
 
+  const actorTopPriority = await getActorTopRolePriority(actor.id);
+  if (!canActorManageRolePriority(actorTopPriority, role.priority)) {
+    return { success: false, error: roleHierarchyError(role.name) };
+  }
+
   const target = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, username: true },
@@ -218,6 +228,11 @@ export async function adminRemoveRole(
 
   const role = await prisma.appRole.findUnique({ where: { id: roleId } });
   if (!role) return { success: false, error: "Role not found." };
+
+  const actorTopPriority = await getActorTopRolePriority(actor.id);
+  if (!canActorManageRolePriority(actorTopPriority, role.priority)) {
+    return { success: false, error: roleHierarchyError(role.name) };
+  }
 
   const hasCritical = await userHasCriticalAdminAccess(userId);
   if (hasCritical && isFullAccessRoleSlug(role.slug)) {

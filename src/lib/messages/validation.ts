@@ -1,4 +1,5 @@
 import { hasNonQuoteContent } from "@/lib/quoteParser";
+import { stripBBCode } from "@/lib/bbcode";
 
 const MIN_SUBJECT_LENGTH = 5;
 const MAX_SUBJECT_LENGTH = 200;
@@ -43,7 +44,7 @@ export function validateMessageContent(content: string): {
 } {
   const trimmed = content.trim();
 
-  if (trimmed.length < 1) {
+  if (stripBBCode(trimmed).trim().length < 1) {
     return { valid: false, error: "Message cannot be empty." };
   }
 

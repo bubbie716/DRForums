@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { sendMessage, searchMessageRecipients } from "@/lib/messages/actions";
-import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { BBCodeEditor } from "@/components/forum/BBCodeEditor";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import {
   formFieldInnerClassName,
@@ -255,7 +255,7 @@ export function ComposeMessageForm({
 
         <div>
           <FieldLabel className="mb-2">Message</FieldLabel>
-          <MentionTextarea
+          <BBCodeEditor
             id="message"
             value={content}
             onChange={(event) => setContent(event.target.value)}

@@ -1,10 +1,8 @@
 import type { Role } from "@prisma/client";
+import type { DisplayRole } from "@/lib/display-role";
 import { cn } from "@/lib/utils";
 
-type DisplayRole = {
-  name: string;
-  color: string | null;
-};
+export type { DisplayRole };
 
 type RoleBadgeProps = {
   displayRole?: DisplayRole | null;

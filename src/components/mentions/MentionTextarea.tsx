@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import {
   DropdownPortal,
@@ -30,14 +37,26 @@ const POPUP_WIDTH = 176;
 const POPUP_OFFSET_X = 6;
 const POPUP_OFFSET_Y = 2;
 
-export function MentionTextarea({
-  value,
-  onChange,
-  onKeyDown,
-  onScroll,
-  className,
-  ...props
-}: MentionTextareaProps) {
+export const MentionTextarea = forwardRef<
+  HTMLTextAreaElement,
+  MentionTextareaProps
+>(function MentionTextarea(
+  {
+    value,
+    onChange,
+    onKeyDown,
+    onKeyUp,
+    onScroll,
+    onClick,
+    onMouseUp,
+    onSelect,
+    onFocus,
+    onBlur,
+    className,
+    ...props
+  },
+  forwardedRef
+) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [suggestions, setSuggestions] = useState<MentionUser[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -167,7 +186,14 @@ export function MentionTextarea({
   return (
     <div className="relative">
       <AutoResizeTextarea
-        ref={textareaRef}
+        ref={(node) => {
+          textareaRef.current = node;
+          if (typeof forwardedRef === "function") {
+            forwardedRef(node);
+          } else if (forwardedRef) {
+            forwardedRef.current = node;
+          }
+        }}
         value={value}
         onChange={(event) => {
           onChange?.(event);
@@ -182,6 +208,16 @@ export function MentionTextarea({
           if (showSuggestions) {
             updatePopupPosition();
           }
+          onClick?.(event);
+        }}
+        onMouseUp={(event) => {
+          onMouseUp?.(event);
+        }}
+        onSelect={(event) => {
+          onSelect?.(event);
+        }}
+        onFocus={(event) => {
+          onFocus?.(event);
         }}
         onKeyUp={(event) => {
           const target = event.currentTarget;
@@ -189,6 +225,7 @@ export function MentionTextarea({
           if (showSuggestions) {
             updatePopupPosition();
           }
+          onKeyUp?.(event);
         }}
         onScroll={(event) => {
           onScroll?.(event);
@@ -229,7 +266,10 @@ export function MentionTextarea({
 
           onKeyDown?.(event);
         }}
-        onBlur={() => window.setTimeout(() => setShowSuggestions(false), 150)}
+        onBlur={(event) => {
+          window.setTimeout(() => setShowSuggestions(false), 150);
+          onBlur?.(event);
+        }}
         className={className}
         {...props}
       />
@@ -276,4 +316,4 @@ export function MentionTextarea({
       )}
     </div>
   );
-}
+});

@@ -1,8 +1,11 @@
+import { withDisplayRole, type DisplayRole } from "@/lib/display-role";
+import { getUsersDisplayRoles } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export type ConversationParticipantUser = {
   id: string;
   username: string;
+  displayRole: DisplayRole | null;
 };
 
 export type ConversationListItem = {
@@ -107,7 +110,7 @@ export async function getConversationList(
     },
   });
 
-  const items = participations
+  const rawItems = participations
     .map((participation) => {
       const { conversation } = participation;
       const otherParticipants = conversation.participants
@@ -147,7 +150,19 @@ export async function getConversationList(
         updatedAt: conversation.updatedAt,
       };
     })
-    .filter((item): item is ConversationListItem => item !== null);
+    .filter((item): item is Omit<ConversationListItem, never> => item !== null);
+
+  const participantIds = [
+    ...new Set(rawItems.flatMap((item) => item.participants.map((p) => p.id))),
+  ];
+  const displayRoles = await getUsersDisplayRoles(participantIds);
+
+  const items: ConversationListItem[] = rawItems.map((item) => ({
+    ...item,
+    participants: item.participants.map((participant) =>
+      withDisplayRole(participant, displayRoles)
+    ),
+  }));
 
   return items.sort(
     (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime()
@@ -215,14 +230,30 @@ export async function getConversationForUser(
   }
 
   const firstMessage = participation.conversation.messages[0] ?? null;
+  const userIds = new Set<string>();
+
+  for (const participant of otherParticipants) {
+    userIds.add(participant.id);
+  }
+
+  for (const message of participation.conversation.messages) {
+    userIds.add(message.sender.id);
+  }
+
+  const displayRoles = await getUsersDisplayRoles([...userIds]);
 
   return {
     id: participation.conversation.id,
-    participants: otherParticipants,
+    participants: otherParticipants.map((participant) =>
+      withDisplayRole(participant, displayRoles)
+    ),
     isGroup: otherParticipants.length > 1,
     subject:
       participation.conversation.subject ?? firstMessage?.subject ?? null,
-    messages: participation.conversation.messages,
+    messages: participation.conversation.messages.map((message) => ({
+      ...message,
+      sender: withDisplayRole(message.sender, displayRoles),
+    })),
     lastReadAt: participation.lastReadAt,
   };
 }

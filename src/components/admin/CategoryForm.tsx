@@ -12,6 +12,7 @@ import {
   getCategoryDeleteSuccessMessage,
 } from "@/lib/admin/deleteMessages";
 import { SlugField } from "@/components/admin/SlugField";
+import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { formInputClassName } from "@/components/ui/fieldStyles";
 
@@ -150,7 +151,7 @@ export function CategoryForm({ mode, initialValues }: CategoryFormProps) {
 
       <div className="space-y-2">
         <FieldLabel>Description</FieldLabel>
-        <textarea
+        <AutoResizeTextarea
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           rows={4}

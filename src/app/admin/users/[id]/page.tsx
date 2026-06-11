@@ -14,6 +14,10 @@ import {
   getAdminUserThreads,
 } from "@/lib/admin/user-queries";
 import { getAdminRoles } from "@/lib/admin/role-queries";
+import {
+  canActorManageRolePriority,
+  getActorTopRolePriority,
+} from "@/lib/role-hierarchy";
 import { formatBanExpiry } from "@/lib/bans";
 import { getActiveBan } from "@/lib/bans";
 
@@ -40,12 +44,23 @@ export default async function AdminUserDetailPage({ params }: Props) {
 
   if (!user) notFound();
 
-  const actorPermissions = actor
-    ? isAdmin(actor.role)
-      ? ALL_PERMISSION_KEYS
-      : [...(await getUserPermissions(actor.id))]
-    : [];
+  const [actorPermissions, actorTopPriority] = actor
+    ? await Promise.all([
+        isAdmin(actor.role)
+          ? Promise.resolve(ALL_PERMISSION_KEYS)
+          : getUserPermissions(actor.id).then((perms) => [...perms]),
+        getActorTopRolePriority(actor.id),
+      ])
+    : [[], null];
   const assignedRoleIds = user.userRoles.map((ur) => ur.roleId);
+  const manageableRoles = allRoles
+    .filter((role) => canActorManageRolePriority(actorTopPriority, role.priority))
+    .map((role) => ({
+      id: role.id,
+      name: role.name,
+      slug: role.slug,
+      priority: role.priority,
+    }));
 
   return (
     <div className="space-y-6">
@@ -151,7 +166,7 @@ export default async function AdminUserDetailPage({ params }: Props) {
             username={user.username}
             isSelf={actor?.id === user.id}
             assignedRoleIds={assignedRoleIds}
-            allRoles={allRoles.map((r) => ({ id: r.id, name: r.name, slug: r.slug }))}
+            allRoles={manageableRoles}
             hasActiveBan={Boolean(activeBan)}
             actorPermissions={actorPermissions}
           />

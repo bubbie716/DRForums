@@ -1,3 +1,5 @@
+import { stripBBCode } from "@/lib/bbcode";
+
 export type QuoteContentPart =
   | { type: "quote"; username: string; content: string }
   | { type: "text"; content: string };
@@ -5,7 +7,7 @@ export type QuoteContentPart =
 const MAX_QUOTED_LENGTH = 1000;
 
 function getQuoteBlockRegex(): RegExp {
-  return /\[quote="([^"]*)"\]([\s\S]*?)\[\/quote\]/gi;
+  return /\[quote(?:="([^"]*)")?\]([\s\S]*?)\[\/quote\]/gi;
 }
 
 export function stripQuoteBlocks(content: string): string {
@@ -13,7 +15,7 @@ export function stripQuoteBlocks(content: string): string {
 }
 
 export function getNonQuoteText(content: string): string {
-  return stripQuoteBlocks(content).trim();
+  return stripBBCode(stripQuoteBlocks(content)).trim();
 }
 
 export function hasNonQuoteContent(content: string): boolean {
@@ -36,7 +38,7 @@ export function parseQuoteContent(content: string): QuoteContentPart[] {
 
     parts.push({
       type: "quote",
-      username: match[1],
+      username: match[1] ?? "Quote",
       content: match[2].trim(),
     });
     lastIndex = index + match[0].length;

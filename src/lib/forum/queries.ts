@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { calculateReactionRatioFromPostReactions } from "@/lib/forum/reactions";
 import { canViewThread, getForumAccessMap } from "@/lib/forumAccess";
-import { getUserDisplayRole } from "@/lib/permissions";
+import { withDisplayRole } from "@/lib/display-role";
+import { getUserDisplayRole, getUsersDisplayRoles } from "@/lib/permissions";
 
 export type LatestPost = {
   id: string;
@@ -297,14 +298,13 @@ export async function getForumThreads(
 }
 
 export async function getThreadById(id: string) {
-  return prisma.thread.findUnique({
+  const thread = await prisma.thread.findUnique({
     where: { id },
     include: {
       author: {
         select: {
           id: true,
           username: true,
-          role: true,
           createdAt: true,
           minecraftUsername: true,
         },
@@ -329,7 +329,6 @@ export async function getThreadById(id: string) {
             select: {
               id: true,
               username: true,
-              role: true,
               createdAt: true,
               minecraftUsername: true,
             },
@@ -344,6 +343,25 @@ export async function getThreadById(id: string) {
       },
     },
   });
+
+  if (!thread) {
+    return null;
+  }
+
+  const authorIds = [
+    thread.author.id,
+    ...thread.posts.map((post) => post.author.id),
+  ];
+  const displayRoles = await getUsersDisplayRoles(authorIds);
+
+  return {
+    ...thread,
+    author: withDisplayRole(thread.author, displayRoles),
+    posts: thread.posts.map((post) => ({
+      ...post,
+      author: withDisplayRole(post.author, displayRoles),
+    })),
+  };
 }
 
 export async function getPublicProfile(

@@ -19,6 +19,7 @@ import {
   getCategoryDeleteSuccessMessage,
 } from "@/lib/admin/deleteMessages";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
+import { AutoResizeTextarea } from "@/components/ui/AutoResizeTextarea";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { cn } from "@/lib/utils";
 
@@ -258,7 +259,7 @@ export function ForumManagementList({ categories }: ForumManagementListProps) {
                     </div>
                     <div className="sm:col-span-2">
                       <FieldLabel>Description</FieldLabel>
-                      <textarea
+                      <AutoResizeTextarea
                         value={categoryDraft.description}
                         onChange={(event) =>
                           updateCategoryDraft(
@@ -465,7 +466,7 @@ export function ForumManagementList({ categories }: ForumManagementListProps) {
                           </div>
                           <div className="sm:col-span-2">
                             <FieldLabel>Description</FieldLabel>
-                            <textarea
+                            <AutoResizeTextarea
                               value={forumDraft.description}
                               onChange={(event) =>
                                 updateForumDraft(
