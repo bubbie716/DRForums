@@ -45,6 +45,11 @@ model User {
   rolesAssigned              UserRole[]                @relation("RoleAssignedBy")
   moderationLogsAsActor      ModerationLog[]           @relation("LogActor")
   moderationLogsAsTarget     ModerationLog[]           @relation("LogTarget")
+  pollsCreated               Poll[]                    @relation("PollCreatedBy")
+  pollVotes                  PollVote[]
+  formsCreated               Form[]                    @relation("FormCreatedBy")
+  formSubmissions            FormSubmission[]          @relation("FormSubmittedBy")
+  formSubmissionsReviewed    FormSubmission[]          @relation("FormSubmissionReviewedBy")
 
   @@map("users")
 }
@@ -87,6 +92,7 @@ model AppRole {
   permissions           RolePermission[]
   users                 UserRole[]
   forumRolePermissions  ForumRolePermission[]
+  formReviewerRoles     FormReviewerRole[]
 
   @@map("app_roles")
 }
@@ -267,6 +273,7 @@ model Category {
 
   forums               Forum[]
   forumRolePermissions ForumRolePermission[]
+  forms                Form[]
 
   @@index([slug])
   @@map("categories")
@@ -287,6 +294,7 @@ model Forum {
   category             Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   threads              Thread[]
   forumRolePermissions ForumRolePermission[]
+  form                 Form?
 
   @@index([categoryId])
   @@index([slug])
@@ -336,11 +344,65 @@ model Thread {
   author User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   posts               Post[]
   forumNotifications  ForumNotification[]
+  poll                Poll?
+  formSubmission      FormSubmission?
 
   @@index([forumId])
   @@index([authorId])
   @@index([slug])
   @@map("threads")
+}
+
+model Poll {
+  id            String    @id @default(cuid())
+  threadId      String    @unique
+  question      String
+  allowMultiple Boolean   @default(false)
+  closesAt      DateTime?
+  isClosed      Boolean   @default(false)
+  isAnonymous   Boolean   @default(false)
+  createdById   String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  thread    Thread       @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  createdBy User         @relation("PollCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  options   PollOption[]
+  votes     PollVote[]
+
+  @@index([createdById])
+  @@map("polls")
+}
+
+model PollOption {
+  id        String   @id @default(cuid())
+  pollId    String
+  label     String
+  sortOrder Int
+  createdAt DateTime @default(now())
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+model PollVote {
+  id        String   @id @default(cuid())
+  pollId    String
+  optionId  String
+  userId    String
+  createdAt DateTime @default(now())
+
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, optionId, userId])
+  @@index([pollId])
+  @@index([userId])
+  @@map("poll_votes")
 }
 
 model Post {
@@ -441,4 +503,122 @@ model MessageReaction {
   @@unique([messageId, userId, type])
   @@index([messageId])
   @@map("message_reactions")
+}
+
+enum FormFieldType {
+  SHORT_TEXT
+  LONG_TEXT
+  NUMBER
+  DROPDOWN
+  CHECKBOX
+  RADIO
+  DATE
+}
+
+enum FormSubmissionStatus {
+  PENDING
+  ACCEPTED
+  DENIED
+  CLOSED
+}
+
+model Form {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  description   String?
+  buttonLabel   String   @default("Submit")
+  isOpen        Boolean  @default(true)
+  requiresLogin Boolean  @default(true)
+  categoryId    String
+  forumId       String   @unique
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category      Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  forum         Forum              @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  createdBy     User               @relation("FormCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  fields        FormField[]
+  submissions   FormSubmission[]
+  reviewerRoles FormReviewerRole[]
+
+  @@index([createdById])
+  @@index([categoryId])
+  @@index([slug])
+  @@map("forms")
+}
+
+model FormReviewerRole {
+  id     String @id @default(cuid())
+  formId String
+  roleId String
+
+  form Form    @relation(fields: [formId], references: [id], onDelete: Cascade)
+  role AppRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([formId, roleId])
+  @@index([formId])
+  @@index([roleId])
+  @@map("form_reviewer_roles")
+}
+
+model FormField {
+  id          String        @id @default(cuid())
+  formId      String
+  label       String
+  description String?
+  fieldType   FormFieldType
+  required    Boolean       @default(false)
+  placeholder String?
+  options     Json?
+  sortOrder   Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  form    Form               @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers SubmissionAnswer[]
+
+  @@index([formId])
+  @@map("form_fields")
+}
+
+model FormSubmission {
+  id            String               @id @default(cuid())
+  formId        String
+  threadId      String?              @unique
+  submittedById String?
+  status        FormSubmissionStatus @default(PENDING)
+  reviewedById  String?
+  reviewedAt    DateTime?
+  internalNote  String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  form        Form               @relation(fields: [formId], references: [id], onDelete: Cascade)
+  thread      Thread?            @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  submittedBy User?              @relation("FormSubmittedBy", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy  User?              @relation("FormSubmissionReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  answers     SubmissionAnswer[]
+
+  @@index([formId])
+  @@index([submittedById])
+  @@index([status])
+  @@map("form_submissions")
+}
+
+model SubmissionAnswer {
+  id           String   @id @default(cuid())
+  submissionId String
+  fieldId      String
+  value        Json
+  createdAt    DateTime @default(now())
+
+  submission FormSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  field      FormField      @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, fieldId])
+  @@index([submissionId])
+  @@index([fieldId])
+  @@map("submission_answers")
 }

@@ -56,8 +56,11 @@ export function ComposeMessageForm({
 
     const timeout = window.setTimeout(async () => {
       const results = await searchMessageRecipients(query);
+      const excludedIds = new Set(
+        selectedRecipients.map((recipient) => recipient.id)
+      );
       const filtered = results.filter(
-        (result) => !selectedIds.has(result.id)
+        (result) => !excludedIds.has(result.id)
       );
       setSuggestions(filtered);
       setShowSuggestions(filtered.length > 0);

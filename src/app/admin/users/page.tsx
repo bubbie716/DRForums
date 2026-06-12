@@ -6,7 +6,6 @@ import { AdminRoleBadge } from "@/components/admin/AdminRoleBadge";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { requireAdminPermission } from "@/lib/admin/auth";
 import { searchAdminUsers } from "@/lib/admin/user-queries";
-import { formatBanExpiry } from "@/lib/bans";
 import type { Role } from "@prisma/client";
 
 export const metadata: Metadata = { title: "Users · Admin" };

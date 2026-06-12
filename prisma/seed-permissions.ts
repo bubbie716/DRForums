@@ -1,50 +1,11 @@
 import { PrismaClient, Role } from "@prisma/client";
+import { PERMISSION_DEFINITIONS } from "@/lib/permissions/definitions";
 import {
   SYSTEM_ROLE_DEFINITIONS,
   SYSTEM_ROLE_PERMISSIONS,
   SYSTEM_ROLE_SLUGS,
   isStaffRoleSlug,
 } from "@/lib/system-roles";
-
-const PERMISSION_DEFINITIONS = [
-  { key: "forum.thread.create", label: "Create threads", category: "Forum" },
-  { key: "forum.thread.reply", label: "Reply to threads", category: "Forum" },
-  { key: "forum.thread.editOwn", label: "Edit own threads", category: "Forum" },
-  { key: "forum.thread.deleteOwn", label: "Delete own threads", category: "Forum" },
-  { key: "forum.thread.lock", label: "Lock threads", category: "Forum" },
-  { key: "forum.thread.pin", label: "Pin threads", category: "Forum" },
-  { key: "forum.thread.move", label: "Move threads", category: "Forum" },
-  { key: "forum.post.editAny", label: "Edit any post", category: "Forum" },
-  { key: "forum.post.deleteAny", label: "Delete any post", category: "Forum" },
-  { key: "dm.send", label: "Send direct messages", category: "Direct Messages" },
-  { key: "dm.read", label: "Read direct messages", category: "Direct Messages" },
-  { key: "dm.deleteOwn", label: "Delete own messages", category: "Direct Messages" },
-  { key: "user.view", label: "View users", category: "Users" },
-  { key: "user.edit", label: "Edit users", category: "Users" },
-  { key: "user.ban", label: "Ban users", category: "Users" },
-  { key: "user.unban", label: "Unban users", category: "Users" },
-  { key: "user.changeRole", label: "Change user roles", category: "Users" },
-  { key: "user.unlinkMinecraft", label: "Unlink Minecraft accounts", category: "Users" },
-  { key: "user.resetPassword", label: "Reset user passwords", category: "Users" },
-  { key: "user.resetProfile", label: "Reset public profiles", category: "Users" },
-  { key: "profile.editOwn", label: "Edit own profile", category: "Profiles" },
-  { key: "profile.customAvatar", label: "Custom avatar", category: "Profiles" },
-  { key: "profile.customBanner", label: "Custom banner", category: "Profiles" },
-  { key: "profile.customDescription", label: "Custom bio", category: "Profiles" },
-  { key: "admin.dashboard.view", label: "View admin dashboard", category: "Admin" },
-  { key: "admin.settings.manage", label: "Manage site settings", category: "Admin" },
-  { key: "admin.maintenance.manage", label: "Manage maintenance mode", category: "Admin" },
-  { key: "admin.forums.manage", label: "Manage forums", category: "Admin" },
-  { key: "admin.logs.view", label: "View moderation logs", category: "Admin" },
-  { key: "admin.roles.manage", label: "Manage roles & permissions", category: "Admin" },
-  { key: "poll.create", label: "Create polls (future)", category: "Future — Polls" },
-  { key: "poll.vote", label: "Vote in polls (future)", category: "Future — Polls" },
-  { key: "poll.closeAny", label: "Close any poll (future)", category: "Future — Polls" },
-  { key: "form.create", label: "Create forms (future)", category: "Future — Forms" },
-  { key: "form.respond", label: "Respond to forms (future)", category: "Future — Forms" },
-  { key: "form.viewResponses", label: "View form responses (future)", category: "Future — Forms" },
-  { key: "form.manage", label: "Manage forms (future)", category: "Future — Forms" },
-];
 
 const SITE_DEFAULTS: Record<string, string> = {
   siteName: "District Roleplay",
@@ -216,8 +177,17 @@ export async function seedPermissionsRolesSettings(prisma: PrismaClient) {
   for (const def of PERMISSION_DEFINITIONS) {
     await prisma.permission.upsert({
       where: { key: def.key },
-      create: { key: def.key, label: def.label, category: def.category },
-      update: { label: def.label, category: def.category },
+      create: {
+        key: def.key,
+        label: def.label,
+        category: def.category,
+        description: def.description ?? null,
+      },
+      update: {
+        label: def.label,
+        category: def.category,
+        description: def.description ?? null,
+      },
     });
   }
 
@@ -318,4 +288,21 @@ export async function seedPermissionsRolesSettings(prisma: PrismaClient) {
       update: {},
     });
   }
+}
+
+const isDirectRun = process.argv[1]?.includes("seed-permissions");
+
+if (isDirectRun) {
+  const prisma = new PrismaClient();
+  seedPermissionsRolesSettings(prisma)
+    .then(() => {
+      console.log("Permissions, roles, and settings seeded.");
+    })
+    .catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
 }

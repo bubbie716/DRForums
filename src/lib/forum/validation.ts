@@ -9,6 +9,10 @@ const MAX_TITLE_LENGTH = 200;
 const MIN_CONTENT_LENGTH = 10;
 const MAX_CONTENT_LENGTH = 50000;
 
+export function hasMeaningfulPostContent(content: string): boolean {
+  return stripBBCode(content.trim()).trim().length > 0;
+}
+
 export function validateThreadTitle(title: string): ValidationResult {
   const trimmed = title.trim();
 
@@ -33,10 +37,20 @@ export function validateThreadTitle(title: string): ValidationResult {
   return { valid: true };
 }
 
-export function validatePostContent(content: string): ValidationResult {
+type PostContentValidationOptions = {
+  optional?: boolean;
+};
+
+export function validatePostContent(
+  content: string,
+  options?: PostContentValidationOptions
+): ValidationResult {
   const trimmed = content.trim();
 
   if (!trimmed) {
+    if (options?.optional) {
+      return { valid: true };
+    }
     return { valid: false, error: "Content is required." };
   }
 

@@ -207,6 +207,11 @@ export function canPost(user: SessionUser): boolean {
   return Boolean(user.minecraftUuid) || user.bypassesMinecraftVerification;
 }
 
+/** Unverified members (typically Tourists) who must link Minecraft to unlock posting. */
+export function needsMinecraftLink(user: SessionUser): boolean {
+  return !user.minecraftUuid && !user.bypassesMinecraftVerification;
+}
+
 export async function requireAdmin(): Promise<SessionUser> {
   return requireAdminPermission("admin.dashboard.view");
 }

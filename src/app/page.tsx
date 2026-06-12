@@ -2,11 +2,18 @@ import { getForumIndex } from "@/lib/forum/queries";
 import { CategorySection } from "@/components/forum/CategorySection";
 import { PostButton } from "@/components/forum/PostButton";
 import { HeroSection } from "@/components/home/HeroSection";
-import { canPost, getSessionUser } from "@/lib/auth";
+import { getSessionUser, needsMinecraftLink } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import { isPollsEnabled } from "@/lib/settings";
 
 export default async function ForumIndexPage() {
   const user = await getSessionUser();
-  const categories = await getForumIndex({ userId: user?.id ?? null });
+  const [categories, pollsEnabled, canCreatePollPermission] = await Promise.all([
+    getForumIndex({ userId: user?.id ?? null }),
+    isPollsEnabled(),
+    user ? hasPermission(user.id, "poll.create") : Promise.resolve(false),
+  ]);
+  const canCreatePoll = pollsEnabled && canCreatePollPermission;
 
   const postCategories = categories
     .map((category) => ({
@@ -43,7 +50,8 @@ export default async function ForumIndexPage() {
             <PostButton
               categories={postCategories}
               isLoggedIn={!!user}
-              canPost={user ? canPost(user) : false}
+              canPost={user ? !needsMinecraftLink(user) : false}
+              canCreatePoll={canCreatePoll}
             />
           </div>
 

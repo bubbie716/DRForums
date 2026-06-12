@@ -2,13 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { UserProfileLink } from "@/components/profile/UserProfileLink";
 import { notFound } from "next/navigation";
-import { canPost, getSessionUser } from "@/lib/auth";
+import { canPost, getSessionUser, needsMinecraftLink } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import {
   canModerateForum,
   canReplyToThread,
   canViewThread,
-  getForumAccess,
 } from "@/lib/forumAccess";
 import { ThreadViewRecorder } from "@/components/forum/ThreadViewRecorder";
 import { getThreadById } from "@/lib/forum/queries";
@@ -18,7 +17,10 @@ import { PostCard } from "@/components/forum/PostCard";
 import { MinecraftLinkRequiredNotice } from "@/components/forum/MinecraftLinkRequiredNotice";
 import { ReplyForm } from "@/components/forum/ReplyForm";
 import { ModThreadControls } from "@/components/forum/ModThreadControls";
+import { PollCard } from "@/components/forum/PollCard";
 import { QuoteReplyProvider } from "@/components/shared/QuoteReplyContext";
+import { getThreadPoll } from "@/lib/poll/queries";
+import { hasMeaningfulPostContent } from "@/lib/forum/validation";
 
 type ThreadPageProps = {
   params: Promise<{ id: string }>;
@@ -50,18 +52,20 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
     notFound();
   }
 
-  const [forumAccess, canReply, canModerateForumAccess] = await Promise.all([
-    getForumAccess(user?.id ?? null, thread.forum.id),
-    user ? canReplyToThread(user.id, thread.id) : Promise.resolve(false),
-    user ? canModerateForum(user.id, thread.forum.id) : Promise.resolve(false),
-  ]);
+  const [canReply, canModerateForumAccess, poll, canReplyPermission] =
+    await Promise.all([
+      user ? canReplyToThread(user.id, thread.id) : Promise.resolve(false),
+      user ? canModerateForum(user.id, thread.forum.id) : Promise.resolve(false),
+      getThreadPoll(thread.id, user?.id ?? null),
+      user ? hasPermission(user.id, "forum.thread.reply") : Promise.resolve(false),
+    ]);
 
+  // forum.thread.move permission exists but move UI is not implemented yet.
   const canModerate = !!(
     user &&
     canModerateForumAccess &&
     ((await hasPermission(user.id, "forum.thread.lock")) ||
-      (await hasPermission(user.id, "forum.thread.pin")) ||
-      (await hasPermission(user.id, "forum.thread.move")))
+      (await hasPermission(user.id, "forum.thread.pin")))
   );
 
   const canQuoteReply = !!(
@@ -70,7 +74,12 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
     !thread.isLocked &&
     canReply
   );
-  const replies = thread.posts.slice(1);
+  const firstPost = thread.posts[0];
+  const showOpeningPost =
+    !!firstPost && hasMeaningfulPostContent(firstPost.content);
+  const replies = (showOpeningPost ? thread.posts.slice(1) : thread.posts).filter(
+    (post) => hasMeaningfulPostContent(post.content)
+  );
 
   return (
     <div className="bg-surface min-h-full">
@@ -133,16 +142,18 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
 
         <QuoteReplyProvider>
           <div className="mt-6 space-y-4">
-            {thread.posts.length > 0 && (
+            {poll ? <PollCard poll={poll} isLoggedIn={!!user} /> : null}
+
+            {showOpeningPost && firstPost ? (
               <PostCard
                 threadId={thread.id}
-                post={thread.posts[0]}
+                post={firstPost}
                 currentUserId={user?.id}
                 isLoggedIn={!!user}
-                isThreadOp={thread.posts[0].author.id === thread.author.id}
+                isThreadOp={firstPost.author.id === thread.author.id}
                 canQuoteReply={canQuoteReply}
               />
-            )}
+            ) : null}
 
             {replies.length > 0 && (
               <>
@@ -173,7 +184,9 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
                 </p>
               </div>
             ) : user ? (
-              !forumAccess.canReply ? (
+              needsMinecraftLink(user) ? (
+                <MinecraftLinkRequiredNotice action="post replies" />
+              ) : !canReplyPermission ? (
                 <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-6 py-8 text-center">
                   <p className="text-text-secondary font-medium">
                     You do not have permission to reply in this forum.
@@ -182,13 +195,11 @@ export default async function ThreadPage({ params }: ThreadPageProps) {
               ) : !canReply ? (
                 <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-6 py-8 text-center">
                   <p className="text-text-secondary font-medium">
-                    You can only reply to your own threads in this forum.
+                    You can only reply to threads you created in this forum.
                   </p>
                 </div>
-              ) : canPost(user) ? (
-                <ReplyForm threadId={thread.id} />
               ) : (
-                <MinecraftLinkRequiredNotice action="post replies" />
+                <ReplyForm threadId={thread.id} />
               )
             ) : (
               <div className="bg-white border border-border rounded-2xl shadow-warm px-4 md:px-6 py-8 text-center">

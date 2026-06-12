@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { createThread } from "@/lib/forum/actions";
 import { BBCodeEditor } from "@/components/forum/BBCodeEditor";
+import { PollBuilder } from "@/components/forum/PollBuilder";
 import { FieldLabel } from "@/components/ui/FieldLabel";
 import { formInputClassName } from "@/components/ui/fieldStyles";
 import { ForumPicker } from "@/components/forum/ForumPicker";
+import type { PollCreateInput } from "@/lib/poll/types";
 
 export type PostCategoryOption = {
   name: string;
@@ -14,22 +16,35 @@ export type PostCategoryOption = {
 
 type CreatePostFormProps = {
   categories: PostCategoryOption[];
+  canCreatePoll?: boolean;
 };
 
-export function CreatePostForm({ categories }: CreatePostFormProps) {
+export function CreatePostForm({
+  categories,
+  canCreatePoll = false,
+}: CreatePostFormProps) {
   const defaultSlug = categories[0]?.forums[0]?.slug ?? "";
   const [forumSlug, setForumSlug] = useState(defaultSlug);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [addPoll, setAddPoll] = useState(false);
+  const [pollInput, setPollInput] = useState<PollCreateInput | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const showPollBuilder = canCreatePoll;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = await createThread(forumSlug, title, content);
+    const result = await createThread(
+      forumSlug,
+      title,
+      content,
+      addPoll && showPollBuilder ? pollInput : null
+    );
 
     if (!result.success) {
       setError(result.error);
@@ -74,20 +89,64 @@ export function CreatePostForm({ categories }: CreatePostFormProps) {
       </div>
 
       <div className="space-y-2">
-        <FieldLabel>Content</FieldLabel>
+        <FieldLabel>
+          Content{addPoll && showPollBuilder ? " (optional)" : ""}
+        </FieldLabel>
         <BBCodeEditor
           id="post-content"
           value={content}
           onChange={(event) => setContent(event.target.value)}
           rows={8}
-          required
-          minLength={10}
+          required={!(addPoll && showPollBuilder)}
+          minLength={addPoll && showPollBuilder ? undefined : 10}
           placeholder="Share your thoughts… Use @ to mention someone"
         />
         <p className="text-xs text-text-secondary">
-          Minimum 10 characters of text (BBCode tags don&apos;t count).
+          {addPoll && showPollBuilder
+            ? "Optional when attaching a poll. If provided, minimum 10 characters of text (BBCode tags don't count)."
+            : "Minimum 10 characters of text (BBCode tags don't count)."}
         </p>
       </div>
+
+      {showPollBuilder ? (
+        <div className="space-y-4">
+          <label className="flex items-start gap-3 rounded-xl border border-border bg-cream/40 px-4 py-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={addPoll}
+              onChange={(event) => {
+                const enabled = event.target.checked;
+                setAddPoll(enabled);
+                if (enabled && !pollInput) {
+                  setPollInput({
+                    question: "",
+                    options: ["", ""],
+                    allowMultiple: false,
+                    isAnonymous: false,
+                    closesAt: null,
+                  });
+                }
+                if (!enabled) {
+                  setPollInput(null);
+                }
+              }}
+              className="mt-1 h-4 w-4 rounded border-border text-accent focus:ring-accent/30"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-text-dark">
+                Add poll
+              </span>
+              <span className="block text-xs text-text-secondary mt-0.5">
+                Attach a single-choice or multiple-choice poll to this thread.
+              </span>
+            </span>
+          </label>
+
+          {addPoll && pollInput ? (
+            <PollBuilder value={pollInput} onChange={setPollInput} />
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="flex justify-stretch md:justify-end gap-3 pt-2">
         <button

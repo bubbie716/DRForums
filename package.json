@@ -10,6 +10,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:baseline": "prisma migrate resolve --applied 20250609000000_initial_schema && prisma migrate resolve --applied 20250610000000_admin_forum_management && prisma migrate resolve --applied 20250611000000_add_thread_polls && prisma migrate resolve --applied 20250612000000_add_forms",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio"
   },

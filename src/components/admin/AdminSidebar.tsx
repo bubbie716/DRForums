@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/admin/bans", label: "Forum Bans", icon: "⛔" },
   { href: "/admin/roles", label: "Roles", icon: "🛡" },
   { href: "/admin/forums", label: "Forum Structure", icon: "📋" },
+  { href: "/admin/forms", label: "Forms", icon: "📝" },
   { href: "/admin/maintenance", label: "Maintenance", icon: "🔧" },
   { href: "/admin/settings", label: "Settings", icon: "⚙" },
   { href: "/admin/logs", label: "Logs", icon: "📜" },

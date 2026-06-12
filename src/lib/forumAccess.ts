@@ -292,15 +292,41 @@ export async function canReplyToThread(
   }
 
   const access = await getForumAccess(userId, thread.forumId);
-  if (!access.canReply) {
+
+  if (access.canModerate || access.canViewOtherThreads) {
+    return access.canReply;
+  }
+
+  // Own-thread-only forums (e.g. form submissions): authors may reply.
+  return thread.authorId === userId;
+}
+
+export async function canParticipateInPoll(
+  userId: string | null,
+  threadId: string
+): Promise<boolean> {
+  if (!userId) {
     return false;
   }
 
-  if (access.canViewOtherThreads || access.canModerate) {
-    return true;
+  if (!(await hasPermission(userId, "poll.vote"))) {
+    return false;
   }
 
-  return thread.authorId === userId;
+  const thread = await prisma.thread.findUnique({
+    where: { id: threadId },
+    select: {
+      poll: {
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!thread?.poll) {
+    return false;
+  }
+
+  return canViewThread(userId, threadId);
 }
 
 export async function canViewThread(

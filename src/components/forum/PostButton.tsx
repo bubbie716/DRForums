@@ -13,12 +13,14 @@ type PostButtonProps = {
   categories: PostCategoryOption[];
   isLoggedIn: boolean;
   canPost: boolean;
+  canCreatePoll?: boolean;
 };
 
 export function PostButton({
   categories,
   isLoggedIn,
   canPost,
+  canCreatePoll = false,
 }: PostButtonProps) {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -120,7 +122,10 @@ export function PostButton({
                 </Link>
               </div>
             ) : canPost ? (
-              <CreatePostForm categories={categories} />
+              <CreatePostForm
+                categories={categories}
+                canCreatePoll={canCreatePoll}
+              />
             ) : (
               <MinecraftLinkRequiredNotice action="create threads" />
             )}

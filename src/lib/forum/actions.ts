@@ -20,6 +20,7 @@ import {
 } from "@/lib/forumAccess";
 import { generateThreadSlug } from "@/lib/slug";
 import {
+  hasMeaningfulPostContent,
   validatePostContent,
   validateReplyContent,
   validateThreadTitle,
@@ -39,6 +40,9 @@ import {
   createPostReactionNotification,
   createThreadReplyNotification,
 } from "@/lib/forum-notifications/create";
+import { validatePollInput } from "@/lib/poll/validation";
+import type { PollCreateInput } from "@/lib/poll/types";
+import { isPollsEnabled } from "@/lib/settings";
 
 export type ActionResult =
   | { success: true }
@@ -50,7 +54,8 @@ const THREAD_VIEW_COOKIE_MAX_AGE = 60 * 60;
 export async function createThread(
   forumSlug: string,
   title: string,
-  content: string
+  content: string,
+  pollInput?: PollCreateInput | null
 ): Promise<ActionResult> {
   const user = await getSessionUser();
   if (!user) {
@@ -68,11 +73,6 @@ export async function createThread(
   const titleValidation = validateThreadTitle(title);
   if (!titleValidation.valid) {
     return { success: false, error: titleValidation.error };
-  }
-
-  const contentValidation = validatePostContent(content);
-  if (!contentValidation.valid) {
-    return { success: false, error: contentValidation.error };
   }
 
   const forum = await prisma.forum.findUnique({
@@ -110,9 +110,40 @@ export async function createThread(
     };
   }
 
+  let validatedPoll: PollCreateInput | null = null;
+  if (pollInput) {
+    if (!(await isPollsEnabled())) {
+      return {
+        success: false,
+        error: "Poll creation is currently disabled.",
+      };
+    }
+
+    if (!(await hasPermission(user.id, "poll.create"))) {
+      return {
+        success: false,
+        error: "You do not have permission to create polls.",
+      };
+    }
+
+    const pollValidation = validatePollInput(pollInput);
+    if (!pollValidation.valid) {
+      return { success: false, error: pollValidation.error };
+    }
+    validatedPoll = pollValidation.data;
+  }
+
+  const contentValidation = validatePostContent(content, {
+    optional: !!validatedPoll,
+  });
+  if (!contentValidation.valid) {
+    return { success: false, error: contentValidation.error };
+  }
+
   const trimmedTitle = title.trim();
   const trimmedContent = content.trim();
   const slug = generateThreadSlug(trimmedTitle);
+  const createOpeningPost = hasMeaningfulPostContent(trimmedContent);
 
   const thread = await prisma.thread.create({
     data: {
@@ -121,15 +152,43 @@ export async function createThread(
       content: trimmedContent,
       forumId: forum.id,
       authorId: user.id,
-      posts: {
-        create: {
-          content: trimmedContent,
-          authorId: user.id,
-        },
-      },
+      ...(createOpeningPost
+        ? {
+            posts: {
+              create: {
+                content: trimmedContent,
+                authorId: user.id,
+              },
+            },
+          }
+        : {}),
+      ...(validatedPoll
+        ? {
+            poll: {
+              create: {
+                question: validatedPoll.question,
+                allowMultiple: validatedPoll.allowMultiple,
+                isAnonymous: validatedPoll.isAnonymous,
+                closesAt: validatedPoll.closesAt
+                  ? new Date(validatedPoll.closesAt)
+                  : null,
+                createdById: user.id,
+                options: {
+                  create: validatedPoll.options.map((label, index) => ({
+                    label,
+                    sortOrder: index,
+                  })),
+                },
+              },
+            },
+          }
+        : {}),
     },
     select: {
       id: true,
+      poll: {
+        select: { id: true },
+      },
       posts: {
         select: { id: true },
         take: 1,
@@ -137,6 +196,18 @@ export async function createThread(
       },
     },
   });
+
+  if (thread.poll) {
+    await createModerationLog({
+      actorId: user.id,
+      action: MODERATION_ACTIONS.POLL_CREATED,
+      details: {
+        pollId: thread.poll.id,
+        threadId: thread.id,
+        forumSlug: forum.slug,
+      },
+    });
+  }
 
   const postId = thread.posts[0]?.id;
   if (postId) {
@@ -368,6 +439,12 @@ export async function toggleThreadLock(threadId: string): Promise<ActionResult> 
 export async function recordThreadView(
   threadId: string
 ): Promise<{ recorded: boolean }> {
+  const user = await getSessionUser();
+  const canView = await canViewThread(user?.id ?? null, threadId);
+  if (!canView) {
+    return { recorded: false };
+  }
+
   const cookieStore = await cookies();
   const cookieName = `${THREAD_VIEW_COOKIE_PREFIX}${threadId}`;
 
@@ -400,6 +477,10 @@ export async function togglePostReaction(
     return { success: false, error: "You must be logged in to react." };
   }
 
+  if (await isUserBanned(user.id)) {
+    return { success: false, error: BAN_RESTRICTED_MESSAGE };
+  }
+
   if (!isValidReactionType(type)) {
     return { success: false, error: "Invalid reaction." };
   }
@@ -417,6 +498,13 @@ export async function togglePostReaction(
 
   if (!post) {
     return { success: false, error: "Post not found." };
+  }
+
+  if (!(await canViewThread(user.id, post.thread.id))) {
+    return {
+      success: false,
+      error: "You do not have permission to react to this post.",
+    };
   }
 
   const existing = await prisma.postReaction.findUnique({

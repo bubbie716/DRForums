@@ -13,9 +13,24 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   { key: "forum.thread.deleteOwn", label: "Delete own threads", category: "Forum" },
   { key: "forum.thread.lock", label: "Lock threads", category: "Forum" },
   { key: "forum.thread.pin", label: "Pin threads", category: "Forum" },
-  { key: "forum.thread.move", label: "Move threads", category: "Forum" },
-  { key: "forum.post.editAny", label: "Edit any post", category: "Forum" },
-  { key: "forum.post.deleteAny", label: "Delete any post", category: "Forum" },
+  {
+    key: "forum.thread.move",
+    label: "Move threads",
+    description: "Future — thread move UI not implemented yet.",
+    category: "Forum",
+  },
+  {
+    key: "forum.post.editAny",
+    label: "Edit any post",
+    description: "Future — post moderation UI not implemented yet.",
+    category: "Forum",
+  },
+  {
+    key: "forum.post.deleteAny",
+    label: "Delete any post",
+    description: "Future — post moderation UI not implemented yet.",
+    category: "Forum",
+  },
   // DMs
   { key: "dm.send", label: "Send private messages", category: "Direct Messages" },
   { key: "dm.read", label: "Read private messages", category: "Direct Messages" },
@@ -31,8 +46,18 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   { key: "user.resetProfile", label: "Reset public profiles", category: "Users" },
   // Profiles
   { key: "profile.editOwn", label: "Edit own profile", category: "Profiles" },
-  { key: "profile.customAvatar", label: "Custom avatar", category: "Profiles" },
-  { key: "profile.customBanner", label: "Custom banner", category: "Profiles" },
+  {
+    key: "profile.customAvatar",
+    label: "Custom avatar (coming soon)",
+    description: "Future — upload flow not implemented yet.",
+    category: "Profiles",
+  },
+  {
+    key: "profile.customBanner",
+    label: "Custom banner (coming soon)",
+    description: "Future — upload flow not implemented yet.",
+    category: "Profiles",
+  },
   { key: "profile.customDescription", label: "Custom bio", category: "Profiles" },
   // Admin
   { key: "admin.dashboard.view", label: "View admin dashboard", category: "Admin" },
@@ -41,15 +66,18 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   { key: "admin.forums.manage", label: "Manage forums", category: "Admin" },
   { key: "admin.logs.view", label: "View staff logs", category: "Admin" },
   { key: "admin.roles.manage", label: "Manage roles", category: "Admin" },
-  // Future: Polls (placeholder only)
-  { key: "poll.create", label: "Create polls", category: "Future — Polls", description: "Coming soon." },
-  { key: "poll.vote", label: "Vote in polls", category: "Future — Polls", description: "Coming soon." },
-  { key: "poll.closeAny", label: "Close any poll", category: "Future — Polls", description: "Coming soon." },
-  // Future: Forms (placeholder only)
-  { key: "form.create", label: "Create forms", category: "Future — Forms", description: "Coming soon." },
-  { key: "form.respond", label: "Fill out forms", category: "Future — Forms", description: "Coming soon." },
-  { key: "form.viewResponses", label: "View form answers", category: "Future — Forms", description: "Coming soon." },
-  { key: "form.manage", label: "Manage forms", category: "Future — Forms", description: "Coming soon." },
+  // Polls
+  { key: "poll.create", label: "Create polls", category: "Polls" },
+  { key: "poll.vote", label: "Vote in polls", category: "Polls" },
+  { key: "poll.closeOwn", label: "Close own polls", category: "Polls" },
+  { key: "poll.closeAny", label: "Manage any poll", category: "Polls" },
+  // Forms
+  { key: "form.create", label: "Create forms", category: "Forms" },
+  { key: "form.edit", label: "Edit forms", category: "Forms" },
+  { key: "form.delete", label: "Delete forms", category: "Forms" },
+  { key: "form.respond", label: "Submit forms", category: "Forms" },
+  { key: "form.viewResponses", label: "View form submissions", category: "Forms" },
+  { key: "form.manageResponses", label: "Review form submissions", category: "Forms" },
 ];
 
 export const ALL_PERMISSION_KEYS = PERMISSION_DEFINITIONS.map((p) => p.key);

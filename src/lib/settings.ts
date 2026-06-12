@@ -10,7 +10,6 @@ export const SETTING_KEYS = {
   allowCustomBanners: "allowCustomBanners",
   maintenanceMode: "maintenanceMode",
   maintenanceMessage: "maintenanceMessage",
-  // Future placeholders only
   pollsEnabled: "pollsEnabled",
   formsEnabled: "formsEnabled",
   markdownEnabled: "markdownEnabled",
@@ -79,4 +78,12 @@ export async function isRegistrationEnabled(): Promise<boolean> {
 
 export async function isDmsEnabled(): Promise<boolean> {
   return getSettingBoolean(SETTING_KEYS.dmsEnabled);
+}
+
+export async function isPollsEnabled(): Promise<boolean> {
+  return getSettingBoolean(SETTING_KEYS.pollsEnabled);
+}
+
+export async function isFormsEnabled(): Promise<boolean> {
+  return getSettingBoolean(SETTING_KEYS.formsEnabled);
 }

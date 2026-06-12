@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminNotice } from "@/components/admin/AdminNotice";
 import { FieldLabel } from "@/components/ui/FieldLabel";
-import { COMING_SOON_SETTING_LABELS } from "@/lib/admin/copy";
 import { adminUpdateSiteSettings } from "@/lib/admin/settings-actions";
 import { useUnsavedNativeForm } from "@/hooks/useUnsavedNativeForm";
 import { useUnsavedChangesFlag } from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
@@ -60,6 +59,14 @@ export function SiteSettingsForm({ settings }: { settings: Record<string, string
           <span className="text-sm font-semibold">Private messages enabled</span>
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
+          <input name="pollsEnabled" type="checkbox" defaultChecked={settings.pollsEnabled === "true"} className="w-4 h-4 accent-accent" />
+          <span className="text-sm font-semibold">Poll creation enabled</span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input name="formsEnabled" type="checkbox" defaultChecked={settings.formsEnabled === "true"} className="w-4 h-4 accent-accent" />
+          <span className="text-sm font-semibold">Forms enabled</span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
           <input name="allowCustomProfilePictures" type="checkbox" defaultChecked={settings.allowCustomProfilePictures === "true"} className="w-4 h-4 accent-accent" />
           <span className="text-sm font-semibold">Custom profile pictures (coming soon)</span>
         </label>
@@ -71,17 +78,6 @@ export function SiteSettingsForm({ settings }: { settings: Record<string, string
           <FieldLabel>Max bio length (characters)</FieldLabel>
           <input name="maxProfileBioLength" type="number" defaultValue={settings.maxProfileBioLength} className="form-field mt-1 w-32" />
         </div>
-      </section>
-
-      <section className="space-y-3 border-t border-border pt-6">
-        <h3 className="font-bold text-text-dark">Coming soon</h3>
-        <p className="text-xs text-text-secondary">These options are not live yet.</p>
-        {(["pollsEnabled", "formsEnabled", "markdownEnabled", "bbcodeEnabled"] as const).map((key) => (
-          <label key={key} className="flex items-center gap-3 cursor-pointer opacity-80">
-            <input name={key} type="checkbox" defaultChecked={settings[key] === "true"} className="w-4 h-4 accent-accent" />
-            <span className="text-sm font-semibold">{COMING_SOON_SETTING_LABELS[key]}</span>
-          </label>
-        ))}
       </section>
 
       <button type="submit" disabled={loading} className="min-h-11 px-8 py-3 bg-gradient-orange text-white font-bold rounded-xl disabled:opacity-60">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MentionTextarea } from "@/components/mentions/MentionTextarea";
 import { textareaClassName } from "@/components/ui/AutoResizeTextarea";
@@ -1027,34 +1027,7 @@ export function BBCodeEditor({
     }));
   }
 
-  function updateWriteFormatState() {
-    const editor = writeEditorRef.current;
-    const selection = window.getSelection();
-    const detected = getWriteFormatStateFromEditor(editor, selection);
-    const selectionKey = getWriteSelectionKey(editor, selection);
-    setActiveFormats(resolveActiveFormats(detected, selectionKey));
-    syncStyleControlsFromSelection();
-  }
-
-  function updateBbcodeFormatState() {
-    const textarea = textareaRef.current;
-    if (!textarea) {
-      return;
-    }
-
-    const detected = getBbcodeFormatState(
-      value,
-      textarea.selectionStart
-    );
-    const selectionKey = getBbcodeSelectionKey(
-      textarea.selectionStart,
-      textarea.selectionEnd
-    );
-    setActiveFormats(resolveActiveFormats(detected, selectionKey));
-    syncStyleControlsFromSelection();
-  }
-
-  function syncStyleControlsFromSelection() {
+  const syncStyleControlsFromSelection = useCallback(() => {
     if (mode === "bbcode") {
       const textarea = textareaRef.current;
       if (!textarea) {
@@ -1102,6 +1075,33 @@ export function BBCodeEditor({
     setFontSizeInput((current) =>
       current === nextFontSizeLabel ? current : nextFontSizeLabel
     );
+  }, [mode, value]);
+
+  const updateWriteFormatState = useCallback(() => {
+    const editor = writeEditorRef.current;
+    const selection = window.getSelection();
+    const detected = getWriteFormatStateFromEditor(editor, selection);
+    const selectionKey = getWriteSelectionKey(editor, selection);
+    setActiveFormats(resolveActiveFormats(detected, selectionKey));
+    syncStyleControlsFromSelection();
+  }, [syncStyleControlsFromSelection]);
+
+  function updateBbcodeFormatState() {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const detected = getBbcodeFormatState(
+      value,
+      textarea.selectionStart
+    );
+    const selectionKey = getBbcodeSelectionKey(
+      textarea.selectionStart,
+      textarea.selectionEnd
+    );
+    setActiveFormats(resolveActiveFormats(detected, selectionKey));
+    syncStyleControlsFromSelection();
   }
 
   useEffect(() => {
@@ -1128,7 +1128,7 @@ export function BBCodeEditor({
     return () => {
       document.removeEventListener("selectionchange", handleSelectionChange);
     };
-  }, [mode]);
+  }, [mode, updateWriteFormatState]);
 
   useEffect(() => {
     if (mode === "bbcode") {
@@ -1140,7 +1140,7 @@ export function BBCodeEditor({
     requestAnimationFrame(() => {
       syncStyleControlsFromSelection();
     });
-  }, [mode]);
+  }, [mode, syncStyleControlsFromSelection]);
 
   useEffect(() => {
     if (mode !== "bbcode") {
@@ -1150,7 +1150,7 @@ export function BBCodeEditor({
     requestAnimationFrame(() => {
       syncStyleControlsFromSelection();
     });
-  }, [mode, value]);
+  }, [mode, value, syncStyleControlsFromSelection]);
 
   useEffect(() => {
     if (mode !== "write" || !writeEditorRef.current) {

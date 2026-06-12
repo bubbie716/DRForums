@@ -1,4 +1,9 @@
 import { prisma } from "@/lib/prisma";
+import { PERMISSION_DEFINITIONS } from "@/lib/permissions/definitions";
+
+const PERMISSION_DEFINITION_BY_KEY = new Map(
+  PERMISSION_DEFINITIONS.map((definition) => [definition.key, definition])
+);
 
 export async function getAdminRoles() {
   const roles = await prisma.appRole.findMany({
@@ -20,20 +25,46 @@ export async function getAdminRoleDetail(roleId: string) {
   });
 }
 
+function normalizePermissionLabel<
+  T extends {
+    key: string;
+    label: string;
+    category: string;
+    description: string | null;
+  },
+>(permission: T): T {
+  const definition = PERMISSION_DEFINITION_BY_KEY.get(permission.key);
+  if (!definition) {
+    return permission;
+  }
+
+  return {
+    ...permission,
+    label: definition.label,
+    category: definition.category,
+    description: definition.description ?? null,
+  };
+}
+
 export async function getAllPermissionsGrouped() {
   const permissions = await prisma.permission.findMany({
     orderBy: [{ category: "asc" }, { label: "asc" }],
   });
 
-  const grouped = new Map<string, typeof permissions>();
-  for (const p of permissions) {
-    const list = grouped.get(p.category) ?? [];
-    list.push(p);
-    grouped.set(p.category, list);
+  const grouped = new Map<
+    string,
+    ReturnType<typeof normalizePermissionLabel<(typeof permissions)[number]>>[]
+  >();
+
+  for (const permission of permissions) {
+    const normalized = normalizePermissionLabel(permission);
+    const list = grouped.get(normalized.category) ?? [];
+    list.push(normalized);
+    grouped.set(normalized.category, list);
   }
 
   return Array.from(grouped.entries()).map(([category, items]) => ({
     category,
-    permissions: items,
+    permissions: items.sort((a, b) => a.label.localeCompare(b.label)),
   }));
 }

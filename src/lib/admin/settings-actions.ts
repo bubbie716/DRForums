@@ -94,6 +94,8 @@ export async function adminUpdateSiteSettings(formData: FormData): Promise<Admin
     [SETTING_KEYS.registrationEnabled]:
       formData.get("registrationEnabled") === "on" ? "true" : "false",
     [SETTING_KEYS.dmsEnabled]: formData.get("dmsEnabled") === "on" ? "true" : "false",
+    [SETTING_KEYS.pollsEnabled]: formData.get("pollsEnabled") === "on" ? "true" : "false",
+    [SETTING_KEYS.formsEnabled]: formData.get("formsEnabled") === "on" ? "true" : "false",
     [SETTING_KEYS.maxProfileBioLength]: String(
       formData.get("maxProfileBioLength") ?? "500"
     ),
@@ -101,12 +103,6 @@ export async function adminUpdateSiteSettings(formData: FormData): Promise<Admin
       formData.get("allowCustomProfilePictures") === "on" ? "true" : "false",
     [SETTING_KEYS.allowCustomBanners]:
       formData.get("allowCustomBanners") === "on" ? "true" : "false",
-    // Future placeholders only — no functionality built
-    [SETTING_KEYS.pollsEnabled]: formData.get("pollsEnabled") === "on" ? "true" : "false",
-    [SETTING_KEYS.formsEnabled]: formData.get("formsEnabled") === "on" ? "true" : "false",
-    [SETTING_KEYS.markdownEnabled]:
-      formData.get("markdownEnabled") === "on" ? "true" : "false",
-    [SETTING_KEYS.bbcodeEnabled]: formData.get("bbcodeEnabled") === "on" ? "true" : "false",
   };
 
   const previous = await getAllSettings();

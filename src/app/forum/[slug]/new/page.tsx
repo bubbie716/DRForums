@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { canPost, getSessionUser } from "@/lib/auth";
+import { getSessionUser, needsMinecraftLink } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
+import { isPollsEnabled } from "@/lib/settings";
 import { getForumBySlug } from "@/lib/forum/queries";
 import {
   canCreateThread,
@@ -40,11 +42,15 @@ export default async function NewThreadPage({ params }: NewThreadPageProps) {
     notFound();
   }
 
-  const [canView, canRead, canCreate] = await Promise.all([
-    canViewForum(user.id, forum.id),
-    canReadForum(user.id, forum.id),
-    canCreateThread(user.id, forum.id),
-  ]);
+  const [canView, canRead, canCreate, pollsEnabled, canCreatePollPermission] =
+    await Promise.all([
+      canViewForum(user.id, forum.id),
+      canReadForum(user.id, forum.id),
+      canCreateThread(user.id, forum.id),
+      isPollsEnabled(),
+      hasPermission(user.id, "poll.create"),
+    ]);
+  const canCreatePoll = pollsEnabled && canCreatePollPermission;
 
   if (!canView || !canRead || !canCreate) {
     notFound();
@@ -76,10 +82,13 @@ export default async function NewThreadPage({ params }: NewThreadPageProps) {
                 This forum is locked. No new threads can be created.
               </p>
             </div>
-          ) : canPost(user) ? (
-            <CreateThreadForm forumSlug={forum.slug} />
-          ) : (
+          ) : needsMinecraftLink(user) ? (
             <MinecraftLinkRequiredNotice action="create threads" />
+          ) : (
+            <CreateThreadForm
+              forumSlug={forum.slug}
+              canCreatePoll={canCreatePoll}
+            />
           )}
         </div>
       </div>

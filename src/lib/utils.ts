@@ -1,13 +1,25 @@
+const DISPLAY_TIME_ZONE = "America/New_York";
+
+const displayDateFormatter = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: DISPLAY_TIME_ZONE,
+});
+
 export function formatDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
+  const parts = displayDateFormatter.formatToParts(d);
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  const day = parts.find((part) => part.type === "day")?.value ?? "";
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const hour = parts.find((part) => part.type === "hour")?.value ?? "";
+  const minute = parts.find((part) => part.type === "minute")?.value ?? "";
+  const dayPeriod = parts.find((part) => part.type === "dayPeriod")?.value ?? "";
 
-  return d.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return `${month} ${day}, ${year}, ${hour}:${minute} ${dayPeriod}`;
 }
 
 export function formatRelativeDate(date: Date | string): string {

@@ -100,9 +100,14 @@ export const ADMIN_NAV_PERMISSIONS: Record<string, string> = {
   "/admin/bans": "user.ban",
   "/admin/roles": "admin.roles.manage",
   "/admin/forums": "admin.forums.manage",
+  "/admin/forms": "form.viewResponses",
   "/admin/maintenance": "admin.maintenance.manage",
   "/admin/settings": "admin.settings.manage",
   "/admin/logs": "admin.logs.view",
+};
+
+const ADMIN_NAV_ALTERNATE_PERMISSIONS: Record<string, string[]> = {
+  "/admin/forms": ["form.create", "form.edit", "form.manageResponses"],
 };
 
 export function canAccessAdminNavItem(
@@ -115,7 +120,13 @@ export function canAccessAdminNavItem(
     return false;
   }
 
-  return [required, ...getAllRequiredPermissions(required)].every((key) =>
-    permissionSet.has(key)
+  const hasPrimary = [required, ...getAllRequiredPermissions(required)].every(
+    (key) => permissionSet.has(key)
   );
+  if (hasPrimary) {
+    return true;
+  }
+
+  const alternates = ADMIN_NAV_ALTERNATE_PERMISSIONS[href] ?? [];
+  return alternates.some((key) => permissionSet.has(key));
 }

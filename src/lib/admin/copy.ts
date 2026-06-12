@@ -34,6 +34,16 @@ export const MODERATION_ACTION_LABELS: Record<string, string> = {
   [MODERATION_ACTIONS.MAINTENANCE_DISABLED]: "Maintenance turned off",
   [MODERATION_ACTIONS.MAINTENANCE_MESSAGE_UPDATED]: "Maintenance message updated",
   [MODERATION_ACTIONS.SITE_SETTING_UPDATED]: "Site settings updated",
+  [MODERATION_ACTIONS.POLL_CREATED]: "Poll created",
+  [MODERATION_ACTIONS.POLL_CLOSED]: "Poll closed",
+  [MODERATION_ACTIONS.POLL_REOPENED]: "Poll reopened",
+  [MODERATION_ACTIONS.POLL_DELETED]: "Poll deleted",
+  [MODERATION_ACTIONS.FORM_CREATED]: "Form created",
+  [MODERATION_ACTIONS.FORM_UPDATED]: "Form updated",
+  [MODERATION_ACTIONS.FORM_OPENED]: "Form opened",
+  [MODERATION_ACTIONS.FORM_CLOSED]: "Form closed",
+  [MODERATION_ACTIONS.FORM_DELETED]: "Form deleted",
+  [MODERATION_ACTIONS.FORM_SUBMISSION_REVIEWED]: "Form submission reviewed",
 };
 
 export function formatModerationActionLabel(action: string): string {
@@ -53,13 +63,9 @@ export const PERMISSION_CATEGORY_LABELS: Record<string, string> = {
   Users: "Users",
   Profiles: "Profiles",
   Admin: "Admin panel",
-  "Future — Polls": "Coming soon — Polls",
-  "Future — Forms": "Coming soon — Forms",
+  Polls: "Polls",
+  Forms: "Forms",
+  "Future — Polls": "Polls",
+  "Future — Forms": "Forms",
 };
 
-export const COMING_SOON_SETTING_LABELS: Record<string, string> = {
-  pollsEnabled: "Polls",
-  formsEnabled: "Forms",
-  markdownEnabled: "Markdown posts",
-  bbcodeEnabled: "BBCode posts",
-};
