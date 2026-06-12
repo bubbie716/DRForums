@@ -249,10 +249,16 @@ export async function getForumThreads(
   const accessMap = await getForumAccessMap(userId, [forumId]);
   const access = accessMap.get(forumId);
 
-  const threadFilter =
-    access && !access.canViewOtherThreads && !access.canModerate && userId
-      ? { forumId, authorId: userId }
-      : { forumId };
+  const ownThreadsOnly =
+    access && !access.canViewOtherThreads && !access.canModerate;
+
+  if (ownThreadsOnly && !userId) {
+    return [];
+  }
+
+  const threadFilter = ownThreadsOnly
+    ? { forumId, authorId: userId! }
+    : { forumId };
 
   const threads = await prisma.thread.findMany({
     where: threadFilter,
