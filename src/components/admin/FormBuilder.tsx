@@ -21,6 +21,94 @@ import {
   type FormRoleOption,
 } from "@/lib/form/types";
 import { cn } from "@/lib/utils";
+import {
+  useUnsavedChangesFlag,
+  useUnsavedChangesForm,
+} from "@/components/shared/unsaved-changes/UnsavedChangesProvider";
+
+type FormBuilderSnapshot = {
+  title: string;
+  categoryId: string;
+  buttonLabel: string;
+  reviewerRoleIds: string[];
+  description: string;
+  isOpen: boolean;
+  fields: Array<{
+    id?: string;
+    label: string;
+    description: string | null;
+    fieldType: FormFieldType;
+    required: boolean;
+    placeholder: string | null;
+    options: string[];
+    sortOrder: number;
+  }>;
+};
+
+function normalizeFieldsForSnapshot(fields: FormFieldInput[]): FormBuilderSnapshot["fields"] {
+  return fields.map((field, index) => ({
+    id: field.id,
+    label: field.label.trim(),
+    description: field.description?.trim() || null,
+    fieldType: field.fieldType,
+    required: field.required,
+    placeholder: field.placeholder?.trim() || null,
+    options: OPTION_FIELD_TYPES.includes(field.fieldType)
+      ? (field.options ?? []).map((option) => option.trim()).filter(Boolean)
+      : [],
+    sortOrder: index,
+  }));
+}
+
+function buildSnapshotFromAdminView(form: FormAdminView): FormBuilderSnapshot {
+  return {
+    title: form.title.trim(),
+    categoryId: form.categoryId,
+    buttonLabel: form.buttonLabel.trim(),
+    reviewerRoleIds: [...form.reviewerRoleIds].sort(),
+    description: form.description?.trim() ?? "",
+    isOpen: form.isOpen,
+    fields: normalizeFieldsForSnapshot(
+      form.fields.map((field) => ({
+        id: field.id,
+        label: field.label,
+        description: field.description,
+        fieldType: field.fieldType,
+        required: field.required,
+        placeholder: field.placeholder,
+        options: field.options,
+        sortOrder: field.sortOrder,
+      }))
+    ),
+  };
+}
+
+function buildSnapshotFromState(input: {
+  title: string;
+  categoryId: string;
+  buttonLabel: string;
+  reviewerRoleIds: string[];
+  description: string;
+  isOpen: boolean;
+  fields: FormFieldInput[];
+}): FormBuilderSnapshot {
+  return {
+    title: input.title.trim(),
+    categoryId: input.categoryId,
+    buttonLabel: input.buttonLabel.trim(),
+    reviewerRoleIds: [...input.reviewerRoleIds].sort(),
+    description: input.description.trim(),
+    isOpen: input.isOpen,
+    fields: normalizeFieldsForSnapshot(input.fields),
+  };
+}
+
+function snapshotsEqual(
+  left: FormBuilderSnapshot,
+  right: FormBuilderSnapshot
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
 
 type FormBuilderProps = {
   mode: "create" | "edit";
@@ -163,7 +251,6 @@ function FieldEditor({
             className={`${formInputClassName} mt-1`}
             placeholder="e.g. Why do you want to join staff?"
             required
-            autoFocus
           />
         </div>
         <div className="md:w-44">
@@ -291,6 +378,7 @@ export function FormBuilder({
   roles,
 }: FormBuilderProps) {
   const router = useRouter();
+  const { markSaved } = useUnsavedChangesForm("form-builder");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [categoryId, setCategoryId] = useState(
     initial?.categoryId ?? categories[0]?.id ?? ""
@@ -317,17 +405,47 @@ export function FormBuilder({
         }))
       : []
   );
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(
-    initial?.fields.length ? 0 : null
-  );
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [newFieldType, setNewFieldType] = useState<FormFieldType>("SHORT_TEXT");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [togglingOpen, setTogglingOpen] = useState(false);
+  const [savedBaseline, setSavedBaseline] = useState<FormBuilderSnapshot | null>(
+    mode === "edit" && initial ? buildSnapshotFromAdminView(initial) : null
+  );
 
   const hasSubmissions = (initial?.submissionCount ?? 0) > 0;
+
+  const currentSnapshot = useMemo(
+    () =>
+      buildSnapshotFromState({
+        title,
+        categoryId,
+        buttonLabel,
+        reviewerRoleIds,
+        description,
+        isOpen,
+        fields,
+      }),
+    [
+      title,
+      categoryId,
+      buttonLabel,
+      reviewerRoleIds,
+      description,
+      isOpen,
+      fields,
+    ]
+  );
+
+  const isDirty =
+    mode === "edit" &&
+    savedBaseline !== null &&
+    !snapshotsEqual(currentSnapshot, savedBaseline);
+
+  useUnsavedChangesFlag("form-builder", isDirty);
 
   function toggleReviewerRole(roleId: string) {
     setReviewerRoleIds((current) =>
@@ -448,11 +566,12 @@ export function FormBuilder({
     }
 
     setSuccess(result.message ?? "Saved.");
-    if (mode === "create" && result.formId) {
-      router.push(`/admin/forms/${result.formId}/edit`);
-      router.refresh();
+    if (mode === "create" && result.forumSlug) {
+      router.push(`/forum/${result.forumSlug}`);
       return;
     }
+    setSavedBaseline(currentSnapshot);
+    markSaved();
     router.refresh();
   }
 
@@ -468,7 +587,20 @@ export function FormBuilder({
       setError(result.error);
       return;
     }
-    setIsOpen(!isOpen);
+    const nextIsOpen = !isOpen;
+    setIsOpen(nextIsOpen);
+    setSavedBaseline(
+      buildSnapshotFromState({
+        title,
+        categoryId,
+        buttonLabel,
+        reviewerRoleIds,
+        description,
+        isOpen: nextIsOpen,
+        fields,
+      })
+    );
+    markSaved();
     setSuccess(result.message ?? "Updated.");
     router.refresh();
   }

@@ -63,7 +63,7 @@ export function RecentPostsFeed({ posts }: RecentPostsFeedProps) {
         </div>
       ) : (
         <div className="px-6 py-12 text-center text-text-secondary text-sm">
-          No posts yet.
+          No posts in the last 6 hours.
         </div>
       )}
     </div>

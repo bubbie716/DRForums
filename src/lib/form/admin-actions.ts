@@ -8,10 +8,18 @@ import { hasPermission } from "@/lib/permissions";
 import { createModerationLog, MODERATION_ACTIONS } from "@/lib/moderation-log";
 import { getFormByIdForAdmin, getFormSubmissionCount } from "@/lib/form/queries";
 import { syncFormForumPermissions } from "@/lib/form/forum-sync";
+import {
+  formatFormReviewPostContent,
+  type ReviewedFormSubmissionStatus,
+} from "@/lib/form/review-messages";
 import { validateFormInput } from "@/lib/form/validation";
+import { validatePostContent } from "@/lib/forum/validation";
 import { generateForumSlug } from "@/lib/slug";
 import type { FormActionResult, FormInput } from "@/lib/form/types";
-import type { FormSubmissionStatus } from "@prisma/client";
+import {
+  ForumNotificationType,
+  type FormSubmissionStatus,
+} from "@prisma/client";
 
 async function assertFormPermission(
   userId: string,
@@ -166,7 +174,12 @@ export async function adminCreateForm(input: FormInput): Promise<FormActionResul
   });
 
   revalidateFormPaths(form.id, form.forumSlug);
-  return { success: true, message: "Form created.", formId: form.id };
+  return {
+    success: true,
+    message: "Form created.",
+    formId: form.id,
+    forumSlug: form.forumSlug,
+  };
 }
 
 export async function adminUpdateForm(
@@ -347,7 +360,8 @@ export async function adminDeleteForm(formId: string): Promise<FormActionResult>
 export async function adminReviewSubmission(
   submissionId: string,
   status: FormSubmissionStatus,
-  internalNote?: string | null
+  internalNote?: string | null,
+  publicMessage?: string | null
 ): Promise<FormActionResult> {
   const actor = await getSessionUser();
   if (!actor) {
@@ -359,6 +373,10 @@ export async function adminReviewSubmission(
     return permError;
   }
 
+  if (status === "PENDING") {
+    return { success: false, error: "Choose accept, deny, or closed to review." };
+  }
+
   const submission = await prisma.formSubmission.findUnique({
     where: { id: submissionId },
     select: {
@@ -366,6 +384,7 @@ export async function adminReviewSubmission(
       status: true,
       formId: true,
       threadId: true,
+      submittedById: true,
     },
   });
 
@@ -373,17 +392,84 @@ export async function adminReviewSubmission(
     return { success: false, error: "Submission not found." };
   }
 
-  const trimmedNote = internalNote?.trim() || null;
+  if (submission.status !== "PENDING") {
+    return {
+      success: false,
+      error: "This submission has already been reviewed.",
+    };
+  }
 
-  await prisma.formSubmission.update({
-    where: { id: submissionId },
-    data: {
-      status,
-      internalNote: trimmedNote,
-      reviewedById: actor.id,
-      reviewedAt: new Date(),
-    },
-  });
+  const trimmedNote = internalNote?.trim() || null;
+  const reviewStatus = status as ReviewedFormSubmissionStatus;
+  const trimmedPublicMessage = publicMessage?.trim() ?? "";
+
+  let postContent: string;
+  if (trimmedPublicMessage) {
+    const contentValidation = validatePostContent(trimmedPublicMessage);
+    if (!contentValidation.valid) {
+      return { success: false, error: contentValidation.error };
+    }
+    postContent = trimmedPublicMessage;
+  } else {
+    postContent = formatFormReviewPostContent(reviewStatus, actor.username);
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.formSubmission.updateMany({
+        where: { id: submissionId, status: "PENDING" },
+        data: {
+          status,
+          internalNote: trimmedNote,
+          reviewedById: actor.id,
+          reviewedAt: new Date(),
+        },
+      });
+
+      if (updated.count === 0) {
+        throw new Error("ALREADY_REVIEWED");
+      }
+
+      if (!submission.threadId) {
+        return;
+      }
+
+      await tx.thread.update({
+        where: { id: submission.threadId },
+        data: { isLocked: true },
+      });
+
+      const post = await tx.post.create({
+        data: {
+          content: postContent,
+          threadId: submission.threadId,
+          authorId: actor.id,
+        },
+        select: { id: true },
+      });
+
+      if (submission.submittedById) {
+        await tx.forumNotification.create({
+          data: {
+            userId: submission.submittedById,
+            actorUserId: actor.id,
+            type: ForumNotificationType.FORM_SUBMISSION_REVIEWED,
+            threadId: submission.threadId,
+            postId: post.id,
+            roleName: reviewStatus.toLowerCase(),
+          },
+        });
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "ALREADY_REVIEWED") {
+      return {
+        success: false,
+        error: "This submission has already been reviewed.",
+      };
+    }
+    throw error;
+  }
 
   await createModerationLog({
     actorId: actor.id,
@@ -398,8 +484,19 @@ export async function adminReviewSubmission(
 
   revalidatePath(`/admin/forms/${submission.formId}/submissions`);
   revalidatePath(`/admin/forms/${submission.formId}/submissions/${submissionId}`);
+  revalidatePath("/messages");
   if (submission.threadId) {
     revalidatePath(`/thread/${submission.threadId}`);
   }
-  return { success: true, message: "Submission updated." };
+
+  const statusMessages: Record<Exclude<FormSubmissionStatus, "PENDING">, string> = {
+    ACCEPTED: "Submission accepted, thread locked, and submitter notified.",
+    DENIED: "Submission denied, thread locked, and submitter notified.",
+    CLOSED: "Submission closed, thread locked, and submitter notified.",
+  };
+
+  return {
+    success: true,
+    message: statusMessages[reviewStatus],
+  };
 }

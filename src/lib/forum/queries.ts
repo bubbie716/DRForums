@@ -418,13 +418,20 @@ export async function getUserReactionRatio(userId: string): Promise<number> {
   return calculateReactionRatioFromPostReactions(postReactions);
 }
 
+const PROFILE_RECENT_POSTS_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
 export async function getUserRecentPosts(
   userId: string,
   limit = 15,
   viewerId: string | null = userId
 ) {
+  const createdAfter = new Date(Date.now() - PROFILE_RECENT_POSTS_MAX_AGE_MS);
+
   const posts = await prisma.post.findMany({
-    where: { authorId: userId },
+    where: {
+      authorId: userId,
+      createdAt: { gte: createdAfter },
+    },
     orderBy: { createdAt: "desc" },
     take: limit * 3,
     select: {

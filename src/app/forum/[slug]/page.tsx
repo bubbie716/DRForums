@@ -74,6 +74,18 @@ export default async function ForumPage({ params }: ForumPageProps) {
     !!user &&
     !needsMinecraftLink(user) &&
     (await hasPermission(user.id, "form.respond"));
+  const canEditForm =
+    !!form && !!user && (await hasPermission(user.id, "form.create"));
+  const editFormHref = canEditForm ? `/admin/forms/${form!.id}/edit` : null;
+
+  const editFormButton = editFormHref ? (
+    <Link
+      href={editFormHref}
+      className="w-full sm:w-auto inline-flex items-center justify-center min-h-11 px-6 py-3 text-sm font-semibold rounded-xl border border-border bg-white text-text-secondary hover:text-accent hover:border-accent/40 transition-colors"
+    >
+      Edit form
+    </Link>
+  ) : null;
 
   return (
     <div className="bg-surface min-h-full">
@@ -107,24 +119,31 @@ export default async function ForumPage({ params }: ForumPageProps) {
 
           {form ? (
             user ? (
-              forum.isLocked ? (
-                <p className="text-sm text-text-secondary font-medium">
-                  This forum is locked. No new submissions can be created.
-                </p>
-              ) : needsMinecraftLink(user) ? (
-                <Link
-                  href="/settings"
-                  className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 px-6 py-3 bg-yellow text-text-dark font-bold rounded-xl hover:shadow-warm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-                >
-                  Link Minecraft to Post
-                </Link>
-              ) : canSubmitForm ? (
-                <FormForumSection form={form} isLoggedIn />
-              ) : (
-                <p className="text-sm text-text-secondary font-medium max-w-sm">
-                  {FORM_CITIZEN_REQUIRED_MESSAGE}
-                </p>
-              )
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0 sm:items-center">
+                {!canSubmitForm ? editFormButton : null}
+                {forum.isLocked ? (
+                  <p className="text-sm text-text-secondary font-medium">
+                    This forum is locked. No new submissions can be created.
+                  </p>
+                ) : needsMinecraftLink(user) ? (
+                  <Link
+                    href="/settings"
+                    className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 px-6 py-3 bg-yellow text-text-dark font-bold rounded-xl hover:shadow-warm hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+                  >
+                    Link Minecraft to Post
+                  </Link>
+                ) : canSubmitForm ? (
+                  <FormForumSection
+                    form={form}
+                    isLoggedIn
+                    editFormHref={editFormHref ?? undefined}
+                  />
+                ) : (
+                  <p className="text-sm text-text-secondary font-medium max-w-sm">
+                    {FORM_CITIZEN_REQUIRED_MESSAGE}
+                  </p>
+                )}
+              </div>
             ) : (
               <Link
                 href={`/login?next=/forum/${forum.slug}`}

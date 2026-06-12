@@ -68,6 +68,12 @@ function getNotificationMessage(notification: ForumNotificationItem): string {
       return notification.roleName
         ? `removed your ${notification.roleName} role`
         : "removed a role from you";
+    case "FORM_SUBMISSION_REVIEWED": {
+      const outcome = notification.roleName ?? "reviewed";
+      return threadTitle
+        ? `${outcome} your submission in ${threadTitle}`
+        : `${outcome} your form submission`;
+    }
     default:
       return "interacted with your forum activity";
   }

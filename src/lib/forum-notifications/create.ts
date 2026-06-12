@@ -1,8 +1,10 @@
 import {
   ForumNotificationType,
   MentionSource,
+  type FormSubmissionStatus,
   type ReactionType,
 } from "@prisma/client";
+import { formReviewNotificationRoleName } from "@/lib/form/review-messages";
 import { prisma } from "@/lib/prisma";
 import { extractMentionUsernames } from "@/lib/mentions/parse";
 
@@ -208,6 +210,35 @@ export async function createRoleChangeNotification({
           ? ForumNotificationType.ROLE_ASSIGNED
           : ForumNotificationType.ROLE_REMOVED,
       roleName,
+    },
+  });
+}
+
+export async function createFormSubmissionReviewNotification({
+  submitterId,
+  actorUserId,
+  threadId,
+  postId,
+  status,
+}: {
+  submitterId: string;
+  actorUserId: string;
+  threadId: string;
+  postId: string;
+  status: Exclude<FormSubmissionStatus, "PENDING">;
+}): Promise<void> {
+  if (submitterId === actorUserId) {
+    return;
+  }
+
+  await prisma.forumNotification.create({
+    data: {
+      userId: submitterId,
+      actorUserId,
+      type: ForumNotificationType.FORM_SUBMISSION_REVIEWED,
+      threadId,
+      postId,
+      roleName: formReviewNotificationRoleName(status),
     },
   });
 }

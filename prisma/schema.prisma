@@ -171,6 +171,7 @@ enum ForumNotificationType {
   POST_REACTION
   ROLE_ASSIGNED
   ROLE_REMOVED
+  FORM_SUBMISSION_REVIEWED
 }
 
 model ForumNotification {

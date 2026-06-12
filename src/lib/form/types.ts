@@ -115,7 +115,13 @@ export type SubmissionDetailView = {
 };
 
 export type FormActionResult =
-  | { success: true; message?: string; formId?: string; threadId?: string }
+  | {
+      success: true;
+      message?: string;
+      formId?: string;
+      forumSlug?: string;
+      threadId?: string;
+    }
   | { success: false; error: string };
 
 export const FORM_CITIZEN_REQUIRED_MESSAGE =

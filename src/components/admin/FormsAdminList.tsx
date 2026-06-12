@@ -26,13 +26,15 @@ export function FormsAdminList({ forms, canCreate }: FormsAdminListProps) {
 
   return (
     <div className="bg-white border border-border rounded-2xl shadow-warm overflow-hidden">
-      <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3.5 bg-surface border-b border-border text-xs font-bold text-text-secondary uppercase tracking-widest">
-        <div className="col-span-3">Form</div>
-        <div className="col-span-2">Category</div>
-        <div className="col-span-2">Status</div>
-        <div className="col-span-1 text-center">Submissions</div>
-        <div className="col-span-2">Created</div>
-        <div className="col-span-2 text-right">Actions</div>
+      <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3.5 bg-surface border-b border-border text-xs font-bold text-text-secondary uppercase tracking-wider">
+        <div className="col-span-3 min-w-0">Form</div>
+        <div className="col-span-2 min-w-0">Category</div>
+        <div className="col-span-1 min-w-0">Status</div>
+        <div className="col-span-2 min-w-0 text-center whitespace-nowrap">
+          Submissions
+        </div>
+        <div className="col-span-2 min-w-0 whitespace-nowrap">Created</div>
+        <div className="col-span-2 min-w-0 text-right">Actions</div>
       </div>
 
       <div className="divide-y divide-border">
@@ -52,7 +54,7 @@ export function FormsAdminList({ forms, canCreate }: FormsAdminListProps) {
               {form.categoryName}
             </div>
 
-            <div className="mt-2 md:mt-0 md:col-span-2">
+            <div className="mt-2 md:mt-0 md:col-span-1">
               <span
                 className={`inline-flex px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
                   form.isOpen
@@ -64,7 +66,7 @@ export function FormsAdminList({ forms, canCreate }: FormsAdminListProps) {
               </span>
             </div>
 
-            <div className="mt-2 md:mt-0 md:col-span-1 md:text-center text-sm font-semibold text-text-dark">
+            <div className="mt-2 md:mt-0 md:col-span-2 md:text-center text-sm font-semibold text-text-dark">
               {form.submissionCount}
             </div>
 

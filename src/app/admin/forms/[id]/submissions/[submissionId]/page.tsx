@@ -55,7 +55,11 @@ export default async function AdminSubmissionDetailPage({ params }: Props) {
           ← Back to submissions
         </Link>
       </div>
-      <SubmissionReviewPanel submission={submission} canManage={canManage} />
+      <SubmissionReviewPanel
+        submission={submission}
+        canManage={canManage}
+        reviewerUsername={user.username}
+      />
     </div>
   );
 }

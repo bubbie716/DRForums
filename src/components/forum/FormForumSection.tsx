@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { PublicFormRenderer } from "@/components/forms/PublicFormRenderer";
 import type { PublicFormView } from "@/lib/form/types";
@@ -8,9 +9,14 @@ import type { PublicFormView } from "@/lib/form/types";
 type FormForumSectionProps = {
   form: PublicFormView;
   isLoggedIn: boolean;
+  editFormHref?: string;
 };
 
-export function FormForumSection({ form, isLoggedIn }: FormForumSectionProps) {
+export function FormForumSection({
+  form,
+  isLoggedIn,
+  editFormHref,
+}: FormForumSectionProps) {
   const [showForm, setShowForm] = useState(false);
   const [portalReady, setPortalReady] = useState(false);
 
@@ -48,14 +54,24 @@ export function FormForumSection({ form, isLoggedIn }: FormForumSectionProps) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setShowForm(true)}
-        disabled={!form.isOpen}
-        className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 px-6 py-3 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
-      >
-        {form.buttonLabel}
-      </button>
+      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0">
+        {editFormHref ? (
+          <Link
+            href={editFormHref}
+            className="w-full sm:w-auto inline-flex items-center justify-center min-h-11 px-6 py-3 text-sm font-semibold rounded-xl border border-border bg-white text-text-secondary hover:text-accent hover:border-accent/40 transition-colors"
+          >
+            Edit form
+          </Link>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => setShowForm(true)}
+          disabled={!form.isOpen}
+          className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center min-h-11 px-6 py-3 bg-gradient-orange text-white font-bold rounded-xl hover:shadow-warm-lg hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
+        >
+          {form.buttonLabel}
+        </button>
+      </div>
 
       {portalReady && showForm
         ? createPortal(
