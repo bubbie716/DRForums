@@ -2,6 +2,9 @@
 export const formInputClassName =
   "form-field w-full px-4 py-3 rounded-xl bg-cream border border-border text-text-dark placeholder:text-text-muted focus:outline-none focus-visible:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all";
 
+/** Native `<select>` styling — includes Safari `-webkit-appearance` reset via `.form-field`. */
+export const formSelectClassName = formInputClassName;
+
 export const formInputLgClassName =
   "form-field w-full px-4 py-3.5 rounded-xl bg-cream border border-border text-text-dark placeholder:text-text-muted focus:outline-none focus-visible:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all";
 

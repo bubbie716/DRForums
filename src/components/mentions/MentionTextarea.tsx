@@ -122,20 +122,23 @@ export const MentionTextarea = forwardRef<
     }
 
     const textarea = textareaRef.current;
-    if (!textarea) {
-      return;
-    }
 
     function handleReposition() {
       updatePopupPosition();
     }
 
-    textarea.addEventListener("scroll", handleReposition);
+    textarea?.addEventListener("scroll", handleReposition);
     window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+    window.visualViewport?.addEventListener("resize", handleReposition);
+    window.visualViewport?.addEventListener("scroll", handleReposition);
 
     return () => {
-      textarea.removeEventListener("scroll", handleReposition);
+      textarea?.removeEventListener("scroll", handleReposition);
       window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+      window.visualViewport?.removeEventListener("resize", handleReposition);
+      window.visualViewport?.removeEventListener("scroll", handleReposition);
     };
   }, [showSuggestions, updatePopupPosition]);
 
@@ -283,6 +286,7 @@ export const MentionTextarea = forwardRef<
               top: popupPosition.top,
               left: popupPosition.left,
               width: POPUP_WIDTH,
+              transform: "translateZ(0)",
             }}
             className={cn(dropdownPanelClassName, "rounded-lg")}
           >

@@ -7,6 +7,7 @@ import { textareaClassName } from "@/components/ui/AutoResizeTextarea";
 import {
   DropdownPortal,
   dropdownPanelClassName,
+  toDropdownPanelStyle,
   useAnchoredFixedPosition,
   useDismissOnOutside,
 } from "@/components/ui/dropdown";
@@ -2483,12 +2484,8 @@ export function BBCodeEditor({
         <DropdownPortal>
           <div
             ref={colorMenuRef}
-            className={cn(dropdownPanelClassName, "fixed rounded-xl p-3 w-52")}
-            style={{
-              top: colorMenuPosition.top,
-              left: colorMenuPosition.left,
-              maxHeight: colorMenuPosition.maxHeight,
-            }}
+            className={cn(dropdownPanelClassName, "rounded-xl p-3 w-52")}
+            style={toDropdownPanelStyle(colorMenuPosition)}
           >
             <p className="mb-2 text-xs font-bold text-text-secondary">
               Text color
@@ -2502,8 +2499,13 @@ export function BBCodeEditor({
                   onMouseDown={(event) => {
                     event.preventDefault();
                     captureEditorCaretForFontSize();
+                    applyFontColor(preset.value);
                   }}
-                  onClick={() => applyFontColor(preset.value)}
+                  onTouchEnd={(event) => {
+                    event.preventDefault();
+                    captureEditorCaretForFontSize();
+                    applyFontColor(preset.value);
+                  }}
                   className="h-8 w-8 rounded-lg border border-border transition-transform hover:scale-105"
                   style={{ backgroundColor: preset.value }}
                 />

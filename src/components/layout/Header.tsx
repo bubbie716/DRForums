@@ -6,6 +6,7 @@ import { getUnreadForumNotificationCount } from "@/lib/forum-notifications/queri
 import { getUnreadMessageCount } from "@/lib/messages/queries";
 import { HeaderNavigation } from "./HeaderNavigation";
 import { ScrollAwareHeader } from "./ScrollAwareHeader";
+import { GlobalSearchBar } from "@/components/search/GlobalSearchBar";
 
 export async function Header() {
   const user = await getSessionUser();
@@ -20,9 +21,9 @@ export async function Header() {
 
   return (
     <ScrollAwareHeader>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14 md:h-[80px]">
-          <Link href="/" className="flex items-center gap-3 md:gap-4 group min-w-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="flex items-center gap-3 md:gap-4 h-14 md:h-[80px]">
+          <Link href="/" className="flex items-center gap-3 md:gap-4 group min-w-0 shrink-0">
             <Image
               src="/district-roleplay-logo.png"
               alt="District Roleplay"
@@ -41,15 +42,19 @@ export async function Header() {
             </div>
           </Link>
 
-          <HeaderNavigation
-            user={
-              user
-                ? { username: user.username, isAdmin: showAdmin }
-                : null
-            }
-            unreadForumNotificationCount={unreadForumNotificationCount}
-            unreadDirectMessageCount={unreadDirectMessageCount}
-          />
+          <GlobalSearchBar />
+
+          <div className="ml-auto shrink-0">
+            <HeaderNavigation
+              user={
+                user
+                  ? { username: user.username, isAdmin: showAdmin }
+                  : null
+              }
+              unreadForumNotificationCount={unreadForumNotificationCount}
+              unreadDirectMessageCount={unreadDirectMessageCount}
+            />
+          </div>
         </div>
       </div>
     </ScrollAwareHeader>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   DropdownPortal,
   dropdownPanelClassName,
+  toDropdownPanelStyle,
   useAnchoredFixedPosition,
 } from "@/components/ui/dropdown";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
@@ -197,13 +198,7 @@ export function ComposeMessageForm({
               <ul
                 id="recipient-suggestions"
                 role="listbox"
-                style={{
-                  position: "fixed",
-                  top: suggestionPosition.top,
-                  left: suggestionPosition.left,
-                  width: suggestionPosition.width,
-                  maxHeight: suggestionPosition.maxHeight,
-                }}
+                style={toDropdownPanelStyle(suggestionPosition)}
                 className={cn(dropdownPanelClassName, "rounded-xl")}
               >
                 {suggestions.map((suggestion) => (

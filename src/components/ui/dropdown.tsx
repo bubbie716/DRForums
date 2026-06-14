@@ -4,19 +4,21 @@ import {
   useEffect,
   useLayoutEffect,
   useState,
+  type CSSProperties,
   type RefObject,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
 
 export const dropdownPanelClassName =
-  "z-[200] bg-white border border-border shadow-warm overflow-y-auto overflow-x-hidden [-webkit-overflow-scrolling:touch] [transform:translateZ(0)] [isolation:isolate] touch-manipulation";
+  "z-[200] bg-white border border-border shadow-warm overflow-y-auto overflow-x-hidden [-webkit-overflow-scrolling:touch] touch-manipulation";
 
-type AnchoredPosition = {
+export type AnchoredPosition = {
   top: number;
   left: number;
-  width: number;
+  width?: number;
   maxHeight: number;
+  transform?: string;
 };
 
 type UseAnchoredFixedPositionOptions = {
@@ -26,6 +28,19 @@ type UseAnchoredFixedPositionOptions = {
   maxHeight?: number;
   matchWidth?: boolean;
 };
+
+export function toDropdownPanelStyle(
+  position: AnchoredPosition
+): CSSProperties {
+  return {
+    position: "fixed",
+    top: position.top,
+    left: position.left,
+    ...(position.width !== undefined ? { width: position.width } : {}),
+    maxHeight: position.maxHeight,
+    transform: position.transform ?? "translateZ(0)",
+  };
+}
 
 export function useAnchoredFixedPosition({
   anchorRef,
@@ -48,27 +63,32 @@ export function useAnchoredFixedPosition({
         return;
       }
 
+      const viewport = window.visualViewport;
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const viewportOffsetTop = viewport?.offsetTop ?? 0;
       const rect = anchor.getBoundingClientRect();
       const viewportPadding = 8;
       const availableBelow =
-        window.innerHeight - rect.bottom - viewportPadding - offset;
-      const availableAbove = rect.top - viewportPadding - offset;
+        viewportHeight -
+        (rect.bottom - viewportOffsetTop) -
+        viewportPadding -
+        offset;
+      const availableAbove =
+        rect.top - viewportOffsetTop - viewportPadding - offset;
       const openAbove = availableBelow < 120 && availableAbove > availableBelow;
       const resolvedMaxHeight = Math.max(
         80,
-        Math.min(
-          maxHeight,
-          openAbove ? availableAbove : availableBelow
-        )
+        Math.min(maxHeight, openAbove ? availableAbove : availableBelow)
       );
 
       setPosition({
-        top: openAbove
-          ? rect.top - offset - resolvedMaxHeight
-          : rect.bottom + offset,
+        top: openAbove ? rect.top - offset : rect.bottom + offset,
         left: rect.left,
-        width: matchWidth ? rect.width : anchor.offsetWidth,
+        ...(matchWidth ? { width: rect.width } : {}),
         maxHeight: resolvedMaxHeight,
+        transform: openAbove
+          ? "translateY(-100%) translateZ(0)"
+          : "translateZ(0)",
       });
     }
 
@@ -76,10 +96,14 @@ export function useAnchoredFixedPosition({
 
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
+    window.visualViewport?.addEventListener("resize", update);
+    window.visualViewport?.addEventListener("scroll", update);
 
     return () => {
       window.removeEventListener("resize", update);
       window.removeEventListener("scroll", update, true);
+      window.visualViewport?.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("scroll", update);
     };
   }, [anchorRef, enabled, offset, maxHeight, matchWidth]);
 
@@ -112,13 +136,11 @@ export function useDismissOnOutside(
       }
     }
 
-    document.addEventListener("mousedown", handleDismiss);
-    document.addEventListener("touchstart", handleDismiss, { passive: true });
+    document.addEventListener("pointerdown", handleDismiss);
     document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("mousedown", handleDismiss);
-      document.removeEventListener("touchstart", handleDismiss);
+      document.removeEventListener("pointerdown", handleDismiss);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [enabled, onDismiss, ...refs]);

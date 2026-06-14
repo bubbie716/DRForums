@@ -5,6 +5,7 @@ import { formInputClassName } from "@/components/ui/fieldStyles";
 import {
   DropdownPortal,
   dropdownPanelClassName,
+  toDropdownPanelStyle,
   useAnchoredFixedPosition,
   useDismissOnOutside,
 } from "@/components/ui/dropdown";
@@ -105,13 +106,7 @@ export function ForumPicker({
             ref={panelRef}
             id={listboxId}
             role="listbox"
-            style={{
-              position: "fixed",
-              top: position.top,
-              left: position.left,
-              width: position.width,
-              maxHeight: position.maxHeight,
-            }}
+            style={toDropdownPanelStyle(position)}
             className={cn(dropdownPanelClassName, "rounded-xl")}
           >
             {categories.map((category) => (
