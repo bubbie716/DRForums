@@ -8,6 +8,8 @@ export const SETTING_KEYS = {
   maxProfileBioLength: "maxProfileBioLength",
   allowCustomProfilePictures: "allowCustomProfilePictures",
   allowCustomBanners: "allowCustomBanners",
+  allowProfileBios: "allowProfileBios",
+  allowSignatures: "allowSignatures",
   maintenanceMode: "maintenanceMode",
   maintenanceMessage: "maintenanceMessage",
   pollsEnabled: "pollsEnabled",
@@ -26,6 +28,8 @@ const DEFAULTS: Record<string, string> = {
   [SETTING_KEYS.maxProfileBioLength]: "500",
   [SETTING_KEYS.allowCustomProfilePictures]: "false",
   [SETTING_KEYS.allowCustomBanners]: "false",
+  [SETTING_KEYS.allowProfileBios]: "true",
+  [SETTING_KEYS.allowSignatures]: "true",
   [SETTING_KEYS.maintenanceMode]: "false",
   [SETTING_KEYS.maintenanceMessage]:
     "District Roleplay is currently undergoing maintenance. Please check back soon.",

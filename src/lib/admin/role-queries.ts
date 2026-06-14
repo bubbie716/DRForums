@@ -47,7 +47,10 @@ function normalizePermissionLabel<
 }
 
 export async function getAllPermissionsGrouped() {
+  const validKeys = PERMISSION_DEFINITIONS.map((definition) => definition.key);
+
   const permissions = await prisma.permission.findMany({
+    where: { key: { in: validKeys } },
     orderBy: [{ category: "asc" }, { label: "asc" }],
   });
 

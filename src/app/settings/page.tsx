@@ -3,9 +3,19 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
+import {
+  canEditBio,
+  canUseCustomAvatar,
+  canUseCustomBanner,
+  canUseSignature,
+  getMaxBioLength,
+} from "@/lib/profile/permissions";
 import { Breadcrumbs } from "@/components/forum/Breadcrumbs";
 import { ChangePasswordForm } from "@/components/settings/ChangePasswordForm";
 import { MinecraftAccountSection } from "@/components/settings/MinecraftAccountSection";
+import { ProfileSettingsSection } from "@/components/settings/ProfileSettingsSection";
+import { SettingsUnsavedChangesShell } from "@/components/settings/SettingsUnsavedChangesShell";
+import { SignatureSettingsSection } from "@/components/settings/SignatureSettingsSection";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -21,11 +31,17 @@ export default async function SettingsPage() {
   const user = await prisma.user.findUnique({
     where: { id: sessionUser.id },
     select: {
+      id: true,
       username: true,
       createdAt: true,
       minecraftUuid: true,
       minecraftUsername: true,
       minecraftLinkedAt: true,
+      bio: true,
+      avatarUrl: true,
+      bannerUrl: true,
+      signature: true,
+      signatureEnabled: true,
     },
   });
 
@@ -33,8 +49,18 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
+  const [canEditBioPerm, canUploadAvatar, canUploadBanner, canUseSignaturePerm, maxBioLength] =
+    await Promise.all([
+      canEditBio(),
+      canUseCustomAvatar(),
+      canUseCustomBanner(),
+      canUseSignature(),
+      getMaxBioLength(),
+    ]);
+
   return (
-    <div className="bg-surface min-h-full">
+    <SettingsUnsavedChangesShell>
+      <div className="bg-surface min-h-full">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-14">
         <Breadcrumbs
           items={[
@@ -98,7 +124,26 @@ export default async function SettingsPage() {
           minecraftUsername={user.minecraftUsername}
           minecraftLinkedAt={user.minecraftLinkedAt}
         />
+
+        <ProfileSettingsSection
+          userId={user.id}
+          minecraftUsername={user.minecraftUsername}
+          bio={user.bio}
+          avatarUrl={user.avatarUrl}
+          bannerUrl={user.bannerUrl}
+          maxBioLength={maxBioLength}
+          canEditBio={canEditBioPerm}
+          canUploadAvatar={canUploadAvatar}
+          canUploadBanner={canUploadBanner}
+        />
+
+        <SignatureSettingsSection
+          signature={user.signature}
+          signatureEnabled={user.signatureEnabled}
+          canUseSignature={canUseSignaturePerm}
+        />
       </div>
-    </div>
+      </div>
+    </SettingsUnsavedChangesShell>
   );
 }

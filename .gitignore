@@ -35,6 +35,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# profile uploads (keep directory structure only)
+/public/uploads/avatars/*
+!/public/uploads/avatars/.gitkeep
+/public/uploads/banners/*
+!/public/uploads/banners/.gitkeep
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -5,7 +5,8 @@ import {
   summarizePostReactions,
 } from "@/lib/forum/reactions";
 import type { ReactionType } from "@prisma/client";
-import { MinecraftHead } from "./MinecraftHead";
+import { UserAvatar } from "@/components/profile/UserAvatar";
+import { UserSignature } from "@/components/profile/UserSignature";
 import { PostReactions } from "./PostReactions";
 import { RoleBadge } from "./RoleBadge";
 import { RenderedContent } from "@/components/forum/RenderedContent";
@@ -19,6 +20,8 @@ type PostAuthor = {
   displayRole: DisplayRole | null;
   createdAt: Date;
   minecraftUsername: string | null;
+  avatarUrl?: string | null;
+  displaySignature?: string | null;
 };
 
 type PostCardProps = {
@@ -61,8 +64,9 @@ export function PostCard({
       <div className="flex flex-col sm:flex-row">
         <aside className="sm:w-48 shrink-0 bg-surface border-b sm:border-b-0 sm:border-r border-border px-4 py-3 sm:px-4 sm:py-6">
           <div className="profile-author-block flex sm:hidden items-center gap-3 min-w-0">
-            <MinecraftHead
+            <UserAvatar
               seed={post.author.id}
+              avatarUrl={post.author.avatarUrl}
               minecraftUsername={post.author.minecraftUsername}
               profileUsername={post.author.username}
               size={36}
@@ -84,8 +88,9 @@ export function PostCard({
           </div>
 
           <div className="profile-author-block hidden sm:flex flex-col items-center gap-2.5 text-center w-full">
-            <MinecraftHead
+            <UserAvatar
               seed={post.author.id}
+              avatarUrl={post.author.avatarUrl}
               minecraftUsername={post.author.minecraftUsername}
               profileUsername={post.author.username}
               size={52}
@@ -134,6 +139,8 @@ export function PostCard({
             content={post.content}
             className="text-text-primary leading-relaxed whitespace-pre-wrap break-words"
           />
+
+          <UserSignature signature={post.author.displaySignature} />
 
           <PostReactions
             key={getReactionStateKey(

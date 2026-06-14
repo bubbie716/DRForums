@@ -15,6 +15,8 @@ const SITE_DEFAULTS: Record<string, string> = {
   maxProfileBioLength: "500",
   allowCustomProfilePictures: "false",
   allowCustomBanners: "false",
+  allowProfileBios: "true",
+  allowSignatures: "true",
   maintenanceMode: "false",
   maintenanceMessage: "District Roleplay is currently undergoing maintenance. Please check back soon.",
   pollsEnabled: "false",
@@ -189,6 +191,19 @@ export async function seedPermissionsRolesSettings(prisma: PrismaClient) {
         description: def.description ?? null,
       },
     });
+  }
+
+  const validKeys = PERMISSION_DEFINITIONS.map((definition) => definition.key);
+  const orphanedPermissions = await prisma.permission.findMany({
+    where: { key: { notIn: validKeys } },
+    select: { id: true, key: true },
+  });
+
+  for (const orphan of orphanedPermissions) {
+    await prisma.rolePermission.deleteMany({
+      where: { permissionId: orphan.id },
+    });
+    await prisma.permission.delete({ where: { id: orphan.id } });
   }
 
   const allPerms = await prisma.permission.findMany();

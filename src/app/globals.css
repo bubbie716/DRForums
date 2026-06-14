@@ -222,6 +222,33 @@ select.form-field:disabled {
   word-break: break-word;
 }
 
+.bbcode-align {
+  width: 100%;
+}
+
+.bbcode-align-left {
+  text-align: left;
+}
+
+.bbcode-align-center {
+  text-align: center;
+}
+
+.bbcode-align-right {
+  text-align: right;
+}
+
+.bbcode-align-justify {
+  text-align: justify;
+}
+
+.bbcode-write-editor .bbcode-align-left,
+.bbcode-write-editor .bbcode-align-center,
+.bbcode-write-editor .bbcode-align-right,
+.bbcode-write-editor .bbcode-align-justify {
+  display: block;
+}
+
 .bbcode-content a {
   color: var(--color-accent);
   text-decoration: underline;

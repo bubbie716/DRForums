@@ -40,6 +40,7 @@ export type ThreadSearchResult = {
     id: string;
     username: string;
     minecraftUsername: string | null;
+    avatarUrl: string | null;
   };
   replyCount: number;
   viewCount: number;
@@ -59,6 +60,7 @@ export type PostSearchResult = {
     id: string;
     username: string;
     minecraftUsername: string | null;
+    avatarUrl: string | null;
   };
   createdAt: Date;
   sortDate: Date;
@@ -70,6 +72,7 @@ export type UserSearchResult = {
   username: string;
   minecraftUsername: string | null;
   minecraftUuid: string | null;
+  avatarUrl: string | null;
   createdAt: Date;
   displayRole: { name: string; color: string | null } | null;
 };

@@ -66,13 +66,28 @@ export function SiteSettingsForm({ settings }: { settings: Record<string, string
           <input name="formsEnabled" type="checkbox" defaultChecked={settings.formsEnabled === "true"} className="w-4 h-4 accent-accent" />
           <span className="text-sm font-semibold">Forms enabled</span>
         </label>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="font-bold text-text-dark">Profile customization</h3>
+        <p className="text-sm text-text-secondary">
+          Global rules for all members. Not controlled per role.
+        </p>
         <label className="flex items-center gap-3 cursor-pointer">
           <input name="allowCustomProfilePictures" type="checkbox" defaultChecked={settings.allowCustomProfilePictures === "true"} className="w-4 h-4 accent-accent" />
-          <span className="text-sm font-semibold">Custom profile pictures (coming soon)</span>
+          <span className="text-sm font-semibold">Custom profile pictures</span>
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
           <input name="allowCustomBanners" type="checkbox" defaultChecked={settings.allowCustomBanners === "true"} className="w-4 h-4 accent-accent" />
-          <span className="text-sm font-semibold">Custom profile banners (coming soon)</span>
+          <span className="text-sm font-semibold">Custom profile banners</span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input name="allowProfileBios" type="checkbox" defaultChecked={settings.allowProfileBios === "true"} className="w-4 h-4 accent-accent" />
+          <span className="text-sm font-semibold">Profile bios</span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input name="allowSignatures" type="checkbox" defaultChecked={settings.allowSignatures === "true"} className="w-4 h-4 accent-accent" />
+          <span className="text-sm font-semibold">Post and DM signatures</span>
         </label>
         <div>
           <FieldLabel>Max bio length (characters)</FieldLabel>

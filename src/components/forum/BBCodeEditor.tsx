@@ -16,8 +16,10 @@ import { formInputClassName } from "@/components/ui/fieldStyles";
 import {
   bbcodeHtmlForWriteEditor,
   htmlToBbcode,
+  BBCODE_ALIGNMENTS,
   normalizeBbcodeColor,
   normalizeBbcodeFontSize,
+  type BbcodeAlignment,
 } from "@/lib/bbcode";
 import {
   preserveWindowScroll,
@@ -176,6 +178,20 @@ const WRITE_COMMANDS: Record<FormatKey, string> = {
   italic: "italic",
   underline: "underline",
   strikethrough: "strikeThrough",
+};
+
+const WRITE_ALIGN_COMMANDS: Record<BbcodeAlignment, string> = {
+  left: "justifyLeft",
+  center: "justifyCenter",
+  right: "justifyRight",
+  justify: "justifyFull",
+};
+
+const ALIGN_LABELS: Record<BbcodeAlignment, string> = {
+  left: "Left",
+  center: "Center",
+  right: "Right",
+  justify: "Justify",
 };
 
 function getBbcodeFormatState(
@@ -896,7 +912,8 @@ export function BBCodeEditor({
     end: number;
   } | null>(null);
   const toolbarScrollLockRef = useRef<number | null>(null);
-  const lastSyncedValue = useRef(value);
+  const lastSyncedValue = useRef<string | null>(null);
+  const writeEditorHydratedRef = useRef(false);
   const skipExternalSync = useRef(false);
   const formatOverridesRef = useRef<Partial<Record<FormatKey, boolean>>>({});
   const lastFormatSelectionKeyRef = useRef("");
@@ -919,12 +936,15 @@ export function BBCodeEditor({
     strikethrough: false,
   });
   const [colorMenuOpen, setColorMenuOpen] = useState(false);
+  const [alignMenuOpen, setAlignMenuOpen] = useState(false);
   const [customColor, setCustomColor] = useState(DEFAULT_TEXT_COLOR);
   const [textColorControl, setTextColorControl] = useState(DEFAULT_TEXT_COLOR);
   const [fontSizeControl, setFontSizeControl] = useState(DEFAULT_FONT_SIZE);
   const [fontSizeInput, setFontSizeInput] = useState(String(DEFAULT_FONT_SIZE));
   const colorButtonRef = useRef<HTMLButtonElement>(null);
   const colorMenuRef = useRef<HTMLDivElement>(null);
+  const alignButtonRef = useRef<HTMLButtonElement>(null);
+  const alignMenuRef = useRef<HTMLDivElement>(null);
   const imageUrlInputRef = useRef<HTMLInputElement>(null);
   const linkUrlInputRef = useRef<HTMLInputElement>(null);
 
@@ -935,11 +955,25 @@ export function BBCodeEditor({
     maxHeight: 320,
   });
 
+  const alignMenuPosition = useAnchoredFixedPosition({
+    anchorRef: alignButtonRef,
+    enabled: alignMenuOpen,
+    matchWidth: false,
+    maxHeight: 220,
+  });
+
   useDismissOnOutside(
     colorMenuOpen,
     () => setColorMenuOpen(false),
     colorButtonRef,
     colorMenuRef
+  );
+
+  useDismissOnOutside(
+    alignMenuOpen,
+    () => setAlignMenuOpen(false),
+    alignButtonRef,
+    alignMenuRef
   );
 
   useEffect(() => {
@@ -1154,6 +1188,12 @@ export function BBCodeEditor({
   }, [mode, value, syncStyleControlsFromSelection]);
 
   useEffect(() => {
+    if (mode !== "write") {
+      writeEditorHydratedRef.current = false;
+    }
+  }, [mode]);
+
+  useEffect(() => {
     if (mode !== "write" || !writeEditorRef.current) {
       return;
     }
@@ -1161,6 +1201,7 @@ export function BBCodeEditor({
     if (!value.trim()) {
       writeEditorRef.current.innerHTML = "";
       lastSyncedValue.current = "";
+      writeEditorHydratedRef.current = false;
       skipExternalSync.current = false;
       formatOverridesRef.current = {};
       lastFormatSelectionKeyRef.current = "";
@@ -1180,12 +1221,16 @@ export function BBCodeEditor({
       return;
     }
 
-    if (value === lastSyncedValue.current) {
+    if (
+      writeEditorHydratedRef.current &&
+      value === lastSyncedValue.current
+    ) {
       return;
     }
 
     writeEditorRef.current.innerHTML = bbcodeHtmlForWriteEditor(value);
     lastSyncedValue.current = value;
+    writeEditorHydratedRef.current = true;
     syncWriteEditorHeight();
   }, [value, mode]);
 
@@ -1809,6 +1854,57 @@ export function BBCodeEditor({
     emitChangeWithSelection(nextValue, innerStart, innerEnd);
   }
 
+  function applyBbcodeAlignment(alignment: BbcodeAlignment) {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = value.slice(start, end);
+    const content = selected || "text";
+    const open = `[${alignment}]`;
+    const close = `[/${alignment}]`;
+    const markup = `${open}${content}${close}`;
+    const nextValue = `${value.slice(0, start)}${markup}${value.slice(end)}`;
+
+    if (selected) {
+      emitChangeWithSelection(
+        nextValue,
+        start + markup.length,
+        start + markup.length
+      );
+      return;
+    }
+
+    const innerStart = start + open.length;
+    const innerEnd = innerStart + content.length;
+    emitChangeWithSelection(nextValue, innerStart, innerEnd);
+  }
+
+  function applyAlignment(alignment: BbcodeAlignment) {
+    setAlignMenuOpen(false);
+    lockToolbarScroll();
+
+    if (mode === "bbcode") {
+      applyBbcodeAlignment(alignment);
+      requestAnimationFrame(() => {
+        restoreLockedToolbarScroll();
+        textareaRef.current?.focus({ preventScroll: true });
+      });
+      return;
+    }
+
+    focusWriteEditor();
+    document.execCommand(WRITE_ALIGN_COMMANDS[alignment], false);
+    syncValueFromWrite();
+    requestAnimationFrame(() => {
+      restoreLockedToolbarScroll();
+      focusWriteEditor();
+    });
+  }
+
   function handleWriteFormat(formatKey: FormatKey) {
     focusWriteEditor();
 
@@ -2043,11 +2139,13 @@ export function BBCodeEditor({
     });
 
     if (nextMode === "write") {
-      const bbcode = lastSyncedValue.current || value;
+      const bbcode = lastSyncedValue.current ?? value;
       lastSyncedValue.current = bbcode;
+      writeEditorHydratedRef.current = false;
       requestAnimationFrame(() => {
         if (writeEditorRef.current) {
           writeEditorRef.current.innerHTML = bbcodeHtmlForWriteEditor(bbcode);
+          writeEditorHydratedRef.current = true;
           syncWriteEditorHeight();
         }
       });
@@ -2146,12 +2244,33 @@ export function BBCodeEditor({
               lockToolbarScroll();
               captureEditorCaretForFontSize();
             }}
-            onClick={() => setColorMenuOpen((open) => !open)}
+            onClick={() => {
+              setAlignMenuOpen(false);
+              setColorMenuOpen((open) => !open);
+            }}
             className={toolbarButtonClassName(colorMenuOpen)}
           >
             <span className="font-bold" style={{ color: textColorControl }}>
               A
             </span>
+          </button>
+          <button
+            ref={alignButtonRef}
+            type="button"
+            title="Text alignment"
+            aria-expanded={alignMenuOpen}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              lockToolbarScroll();
+              captureEditorCaretForFontSize();
+            }}
+            onClick={() => {
+              setColorMenuOpen(false);
+              setAlignMenuOpen((open) => !open);
+            }}
+            className={toolbarButtonClassName(alignMenuOpen)}
+          >
+            <span className="text-[0.7rem] font-bold leading-none">≡</span>
           </button>
           <div className="inline-flex min-h-9 items-stretch overflow-hidden rounded-lg border border-border bg-white">
             <button
@@ -2540,6 +2659,39 @@ export function BBCodeEditor({
                 aria-label="Custom color hex"
               />
             </div>
+          </div>
+        </DropdownPortal>
+      ) : null}
+
+      {alignMenuOpen && alignMenuPosition ? (
+        <DropdownPortal>
+          <div
+            ref={alignMenuRef}
+            className={cn(dropdownPanelClassName, "rounded-xl p-2 w-40")}
+            style={toDropdownPanelStyle(alignMenuPosition)}
+          >
+            <p className="px-2 py-1 text-xs font-bold text-text-secondary">
+              Alignment
+            </p>
+            {BBCODE_ALIGNMENTS.map((alignment) => (
+              <button
+                key={alignment}
+                type="button"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  captureEditorCaretForFontSize();
+                  applyAlignment(alignment);
+                }}
+                onTouchEnd={(event) => {
+                  event.preventDefault();
+                  captureEditorCaretForFontSize();
+                  applyAlignment(alignment);
+                }}
+                className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-semibold text-text-dark transition-colors hover:bg-hover"
+              >
+                {ALIGN_LABELS[alignment]}
+              </button>
+            ))}
           </div>
         </DropdownPortal>
       ) : null}

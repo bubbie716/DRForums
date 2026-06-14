@@ -21,10 +21,9 @@ const CITIZEN_PERMISSIONS = [
   "dm.send",
   "dm.read",
   "dm.deleteOwn",
-  "profile.editOwn",
 ];
 
-const TOURIST_PERMISSIONS = ["dm.read", "profile.editOwn"];
+const TOURIST_PERMISSIONS = ["dm.read"];
 
 const MODERATOR_PERMISSIONS = [
   ...CITIZEN_PERMISSIONS,

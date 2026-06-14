@@ -1,5 +1,9 @@
 import { withDisplayRole, type DisplayRole } from "@/lib/display-role";
 import { getUsersDisplayRoles } from "@/lib/permissions";
+import {
+  attachDisplaySignature,
+  areSignaturesEnabled,
+} from "@/lib/profile/permissions";
 import { prisma } from "@/lib/prisma";
 
 export type ConversationParticipantUser = {
@@ -201,6 +205,8 @@ export async function getConversationForUser(
                 select: {
                   id: true,
                   username: true,
+                  signature: true,
+                  signatureEnabled: true,
                 },
               },
               reactions: {
@@ -240,7 +246,10 @@ export async function getConversationForUser(
     userIds.add(message.sender.id);
   }
 
-  const displayRoles = await getUsersDisplayRoles([...userIds]);
+  const [displayRoles, signaturesEnabled] = await Promise.all([
+    getUsersDisplayRoles([...userIds]),
+    areSignaturesEnabled(),
+  ]);
 
   return {
     id: participation.conversation.id,
@@ -252,7 +261,10 @@ export async function getConversationForUser(
       participation.conversation.subject ?? firstMessage?.subject ?? null,
     messages: participation.conversation.messages.map((message) => ({
       ...message,
-      sender: withDisplayRole(message.sender, displayRoles),
+      sender: attachDisplaySignature(
+        withDisplayRole(message.sender, displayRoles),
+        signaturesEnabled
+      ),
     })),
     lastReadAt: participation.lastReadAt,
   };

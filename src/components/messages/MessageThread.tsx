@@ -11,6 +11,7 @@ import { RenderedContent } from "@/components/forum/RenderedContent";
 import { CopyPermalinkButton } from "@/components/shared/CopyPermalinkButton";
 import { QuoteReplyButton } from "@/components/shared/QuoteReplyButton";
 import { RoleBadge } from "@/components/forum/RoleBadge";
+import { UserSignature } from "@/components/profile/UserSignature";
 import type { DisplayRole } from "@/lib/display-role";
 
 type MessageThreadProps = {
@@ -23,6 +24,7 @@ type MessageThreadProps = {
       id: string;
       username: string;
       displayRole: DisplayRole | null;
+      displaySignature?: string | null;
     };
     reactions: { type: ReactionType; userId: string }[];
   }[];
@@ -108,6 +110,8 @@ export function MessageThread({
               content={message.content}
               className="text-text-primary leading-relaxed whitespace-pre-wrap break-words"
             />
+
+            <UserSignature signature={message.sender.displaySignature} />
 
             <MessageReactions
               key={getReactionStateKey(

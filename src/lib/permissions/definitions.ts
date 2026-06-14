@@ -44,21 +44,6 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
   { key: "user.unlinkMinecraft", label: "Unlink Minecraft accounts", category: "Users" },
   { key: "user.resetPassword", label: "Reset user passwords", category: "Users" },
   { key: "user.resetProfile", label: "Reset public profiles", category: "Users" },
-  // Profiles
-  { key: "profile.editOwn", label: "Edit own profile", category: "Profiles" },
-  {
-    key: "profile.customAvatar",
-    label: "Custom avatar (coming soon)",
-    description: "Future — upload flow not implemented yet.",
-    category: "Profiles",
-  },
-  {
-    key: "profile.customBanner",
-    label: "Custom banner (coming soon)",
-    description: "Future — upload flow not implemented yet.",
-    category: "Profiles",
-  },
-  { key: "profile.customDescription", label: "Custom bio", category: "Profiles" },
   // Admin
   { key: "admin.dashboard.view", label: "View admin dashboard", category: "Admin" },
   { key: "admin.settings.manage", label: "Manage site settings", category: "Admin" },

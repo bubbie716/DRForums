@@ -103,6 +103,10 @@ export async function adminUpdateSiteSettings(formData: FormData): Promise<Admin
       formData.get("allowCustomProfilePictures") === "on" ? "true" : "false",
     [SETTING_KEYS.allowCustomBanners]:
       formData.get("allowCustomBanners") === "on" ? "true" : "false",
+    [SETTING_KEYS.allowProfileBios]:
+      formData.get("allowProfileBios") === "on" ? "true" : "false",
+    [SETTING_KEYS.allowSignatures]:
+      formData.get("allowSignatures") === "on" ? "true" : "false",
   };
 
   const previous = await getAllSettings();

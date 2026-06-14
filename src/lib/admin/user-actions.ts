@@ -12,6 +12,7 @@ import {
 } from "@/lib/permissions";
 import { createRoleChangeNotification } from "@/lib/forum-notifications/create";
 import { createModerationLog, MODERATION_ACTIONS } from "@/lib/moderation-log";
+import { deleteManagedProfileUpload } from "@/lib/profile/uploads";
 import { getActiveBan } from "@/lib/bans";
 import {
   demoteMemberToTouristAfterMinecraftUnlink,
@@ -95,7 +96,12 @@ export async function adminResetUserProfile(
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, username: true },
+    select: {
+      id: true,
+      username: true,
+      avatarUrl: true,
+      bannerUrl: true,
+    },
   });
   if (!target) return { success: false, error: "User not found." };
 
@@ -105,9 +111,16 @@ export async function adminResetUserProfile(
       bio: null,
       avatarUrl: null,
       bannerUrl: null,
-      // TODO: reset additional profile customization fields when added
+      signature: null,
+      signatureEnabled: true,
+      profileUpdatedAt: new Date(),
     },
   });
+
+  await Promise.all([
+    deleteManagedProfileUpload(target.avatarUrl),
+    deleteManagedProfileUpload(target.bannerUrl),
+  ]);
 
   await createModerationLog({
     actorId: actor.id,
@@ -117,6 +130,7 @@ export async function adminResetUserProfile(
   });
 
   revalidatePath(`/admin/users/${userId}`);
+  revalidatePath(`/profile/${target.username}`);
   return { success: true, message: "Public profile has been reset to defaults." };
 }
 

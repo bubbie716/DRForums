@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatDate, formatRelativeDate } from "@/lib/utils";
 import type { ForumThreadRow } from "@/lib/forum/queries";
 import { UserProfileLink } from "@/components/profile/UserProfileLink";
-import { MinecraftHead } from "./MinecraftHead";
+import { UserAvatar } from "@/components/profile/UserAvatar";
 
 type ThreadRowProps = {
   thread: ForumThreadRow;
@@ -34,8 +34,9 @@ export function ThreadRow({ thread }: ThreadRowProps) {
     <>
       <div className="md:hidden px-4 py-4 border-b border-border/60 last:border-b-0 bg-white hover:bg-hover transition-colors duration-200">
         <div className="flex items-start gap-3 min-w-0">
-          <MinecraftHead
+          <UserAvatar
             seed={thread.author.id}
+            avatarUrl={thread.author.avatarUrl}
             minecraftUsername={thread.author.minecraftUsername}
             profileUsername={thread.author.username}
             size={40}
@@ -96,8 +97,9 @@ export function ThreadRow({ thread }: ThreadRowProps) {
 
       <div className="hidden md:grid grid-cols-12 gap-4 px-4 md:px-6 py-5 border-b border-border/60 last:border-b-0 bg-white hover:bg-hover transition-colors duration-200">
         <div className="profile-author-block col-span-12 lg:col-span-5 flex items-start gap-3 min-w-0">
-          <MinecraftHead
+          <UserAvatar
             seed={thread.author.id}
+            avatarUrl={thread.author.avatarUrl}
             minecraftUsername={thread.author.minecraftUsername}
             profileUsername={thread.author.username}
             size={44}

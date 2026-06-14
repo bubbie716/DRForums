@@ -8,6 +8,20 @@ import {
 } from "@/lib/search/permissions";
 import { withDisplayRole } from "@/lib/display-role";
 import { getUserDisplayRole, getUsersDisplayRoles } from "@/lib/permissions";
+import {
+  attachDisplaySignature,
+  areSignaturesEnabled,
+} from "@/lib/profile/permissions";
+
+const PROFILE_AUTHOR_SELECT = {
+  id: true,
+  username: true,
+  createdAt: true,
+  minecraftUsername: true,
+  avatarUrl: true,
+  signature: true,
+  signatureEnabled: true,
+} as const;
 
 export type LatestPost = {
   id: string;
@@ -273,6 +287,7 @@ export async function getForumThreads(
           id: true,
           username: true,
           minecraftUsername: true,
+          avatarUrl: true,
         },
       },
       _count: {
@@ -313,12 +328,7 @@ export async function getThreadById(id: string) {
     where: { id },
     include: {
       author: {
-        select: {
-          id: true,
-          username: true,
-          createdAt: true,
-          minecraftUsername: true,
-        },
+        select: PROFILE_AUTHOR_SELECT,
       },
       forum: {
         select: {
@@ -337,12 +347,7 @@ export async function getThreadById(id: string) {
         orderBy: { createdAt: "asc" },
         include: {
           author: {
-            select: {
-              id: true,
-              username: true,
-              createdAt: true,
-              minecraftUsername: true,
-            },
+            select: PROFILE_AUTHOR_SELECT,
           },
           reactions: {
             select: {
@@ -363,14 +368,23 @@ export async function getThreadById(id: string) {
     thread.author.id,
     ...thread.posts.map((post) => post.author.id),
   ];
-  const displayRoles = await getUsersDisplayRoles(authorIds);
+  const [displayRoles, signaturesEnabled] = await Promise.all([
+    getUsersDisplayRoles(authorIds),
+    areSignaturesEnabled(),
+  ]);
+
+  const enrichAuthor = <T extends (typeof thread.author)>(author: T) =>
+    attachDisplaySignature(
+      withDisplayRole(author, displayRoles),
+      signaturesEnabled
+    );
 
   return {
     ...thread,
-    author: withDisplayRole(thread.author, displayRoles),
+    author: enrichAuthor(thread.author),
     posts: thread.posts.map((post) => ({
       ...post,
-      author: withDisplayRole(post.author, displayRoles),
+      author: enrichAuthor(post.author),
     })),
   };
 }
@@ -387,6 +401,9 @@ export async function getPublicProfile(
       role: true,
       createdAt: true,
       minecraftUsername: true,
+      bio: true,
+      avatarUrl: true,
+      bannerUrl: true,
     },
   });
 

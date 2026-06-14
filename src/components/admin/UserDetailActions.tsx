@@ -181,7 +181,7 @@ export function UserDetailActions({
       <AdminConfirmModal
         open={modal === "profile"}
         title="Reset Public Profile"
-        message={`Clear ${username}'s bio, avatar, and banner to defaults? Minecraft account will not be unlinked.`}
+        message={`Clear ${username}'s bio, avatar, banner, and signature to defaults? Minecraft account will not be unlinked.`}
         confirmLabel="Reset Profile"
         loading={loading}
         onCancel={() => setModal(null)}

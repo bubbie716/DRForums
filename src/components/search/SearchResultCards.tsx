@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { MinecraftHead } from "@/components/forum/MinecraftHead";
 import { RoleBadge } from "@/components/forum/RoleBadge";
+import { UserAvatar } from "@/components/profile/UserAvatar";
 import { highlightSearchTerms } from "@/lib/search/snippets";
 import type {
   PostSearchResult,
@@ -38,8 +38,9 @@ export function ThreadSearchResultCard({
       className="block bg-white border border-border rounded-2xl shadow-warm p-5 hover:bg-hover hover:shadow-warm-lg transition-all duration-200 group"
     >
       <div className="flex items-start gap-4">
-        <MinecraftHead
+        <UserAvatar
           seed={result.author.id}
+          avatarUrl={result.author.avatarUrl}
           minecraftUsername={result.author.minecraftUsername}
           size={44}
         />
@@ -103,8 +104,9 @@ export function PostSearchResultCard({
       className="block bg-white border border-border rounded-2xl shadow-warm p-5 hover:bg-hover hover:shadow-warm-lg transition-all duration-200 group"
     >
       <div className="flex items-start gap-4">
-        <MinecraftHead
+        <UserAvatar
           seed={result.author.id}
+          avatarUrl={result.author.avatarUrl}
           minecraftUsername={result.author.minecraftUsername}
           size={44}
         />
@@ -153,8 +155,9 @@ export function UserSearchResultCard({ result }: { result: UserSearchResult }) {
       className="block bg-white border border-border rounded-2xl shadow-warm p-5 hover:bg-hover hover:shadow-warm-lg transition-all duration-200 group"
     >
       <div className="flex items-center gap-4">
-        <MinecraftHead
+        <UserAvatar
           seed={result.id}
+          avatarUrl={result.avatarUrl}
           minecraftUsername={result.minecraftUsername}
           size={52}
         />

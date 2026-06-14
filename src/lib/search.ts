@@ -122,6 +122,7 @@ const threadSelect = {
       id: true,
       username: true,
       minecraftUsername: true,
+      avatarUrl: true,
     },
   },
   _count: {
@@ -154,6 +155,7 @@ const postSelect = {
       id: true,
       username: true,
       minecraftUsername: true,
+      avatarUrl: true,
     },
   },
 } satisfies Prisma.PostSelect;
@@ -366,6 +368,7 @@ export async function searchUsers(
         username: true,
         minecraftUsername: true,
         minecraftUuid: true,
+        avatarUrl: true,
         createdAt: true,
       },
       orderBy: { username: "asc" },
@@ -382,6 +385,7 @@ export async function searchUsers(
     username: user.username,
     minecraftUsername: user.minecraftUsername,
     minecraftUuid: user.minecraftUuid,
+    avatarUrl: user.avatarUrl,
     createdAt: user.createdAt,
     displayRole: displayRoles.get(user.id) ?? null,
   }));

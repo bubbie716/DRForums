@@ -1,10 +1,12 @@
 const BLOCK_TAG_PATTERN =
-  /\[(\/?)(quote|code|spoiler|list|b|i|u|s|color|size|url|img)(?:=([^\]]*))?\]/gi;
+  /\[(\/?)(quote|code|spoiler|list|left|center|right|justify|b|i|u|s|color|size|url|img)(?:=([^\]]*))?\]/gi;
 
 const QUOTE_PATTERN = /\[quote(?:="([^"]*)")?\]([\s\S]*?)\[\/quote\]/gi;
 const CODE_PATTERN = /\[code\]([\s\S]*?)\[\/code\]/gi;
 const SPOILER_PATTERN = /\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi;
 const LIST_PATTERN = /\[list\]([\s\S]*?)\[\/list\]/gi;
+const ALIGN_PATTERN =
+  /\[(left|center|right|justify)\]([\s\S]*?)\[\/\1\]/gi;
 const URL_PATTERN =
   /\[url(?:=([^\]]+))?\]([\s\S]*?)\[\/url\]/gi;
 const IMG_PATTERN = /\[img(?:=(\d+))?\]([\s\S]*?)\[\/img\]/gi;
@@ -58,8 +60,8 @@ const ALLOWED_ATTRS: Record<string, Set<string>> = {
   code: new Set(["class"]),
   ul: new Set(["class"]),
   li: new Set(["class"]),
-  div: new Set(["class", "data-bbcode-spoiler"]),
-  p: new Set(["class"]),
+  div: new Set(["class", "data-bbcode-spoiler", "style"]),
+  p: new Set(["class", "style"]),
   hr: new Set(["class"]),
   button: new Set(["type", "class"]),
 };
@@ -163,6 +165,26 @@ export function normalizeBbcodeFontSize(size: string | number): number | null {
 }
 
 export const BBCODE_FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 32, 48] as const;
+
+export const BBCODE_ALIGNMENTS = [
+  "left",
+  "center",
+  "right",
+  "justify",
+] as const;
+
+export type BbcodeAlignment = (typeof BBCODE_ALIGNMENTS)[number];
+
+const BBCODE_ALIGNMENT_CLASS: Record<BbcodeAlignment, string> = {
+  left: "bbcode-align-left",
+  center: "bbcode-align-center",
+  right: "bbcode-align-right",
+  justify: "bbcode-align-justify",
+};
+
+function isBbcodeAlignment(value: string): value is BbcodeAlignment {
+  return (BBCODE_ALIGNMENTS as readonly string[]).includes(value);
+}
 
 function parseSafeFontSize(size: string): string | null {
   const parsed = Number.parseInt(size.trim(), 10);
@@ -396,6 +418,22 @@ function parseToHtml(input: string): string {
       return reserveRenderedBlock(renderedBlocks, parseListItems(inner));
     });
 
+    text = text.replace(
+      ALIGN_PATTERN,
+      (_match, align: string, inner: string) => {
+        const normalized = align.toLowerCase();
+        if (!isBbcodeAlignment(normalized)) {
+          return inner;
+        }
+
+        const body = parseToHtml(inner.trim());
+        return reserveRenderedBlock(
+          renderedBlocks,
+          `<div class="bbcode-align ${BBCODE_ALIGNMENT_CLASS[normalized]}">${body}</div>`
+        );
+      }
+    );
+
     text = text.replace(IMG_PATTERN, (_match, width: string | undefined, src: string) => {
       const url = normalizeImageSrc(src.trim());
       if (!url) {
@@ -588,6 +626,14 @@ function sanitizeStyleAttribute(
         rules.push(`width: ${size}`);
       }
     }
+
+    if (
+      (tag === "div" || tag === "p") &&
+      property === "text-align" &&
+      isBbcodeAlignment(value)
+    ) {
+      rules.push(`text-align: ${value}`);
+    }
   }
 
   return rules.length > 0 ? escapeHtml(rules.join("; ")) : null;
@@ -609,6 +655,10 @@ export function stripBBCode(input: string): string {
       (_m, href: string | undefined, label: string) => label || href || ""
     );
     result = result.replace(IMG_PATTERN, "");
+    result = result.replace(
+      /\[(left|center|right|justify)\]([\s\S]*?)\[\/\1\]/gi,
+      "$2"
+    );
     result = result.replace(
       /\[(b|i|u|s|color|size|url)(?:=[^\]]*)?\]([\s\S]*?)\[\/\1\]/gi,
       "$2"
@@ -842,6 +892,30 @@ function serializeStyleSpan(element: HTMLElement): string {
   return result;
 }
 
+function getAlignTagFromElement(element: HTMLElement): BbcodeAlignment | null {
+  for (const alignment of BBCODE_ALIGNMENTS) {
+    if (element.classList.contains(BBCODE_ALIGNMENT_CLASS[alignment])) {
+      return alignment;
+    }
+  }
+
+  const textAlign = element.style.textAlign;
+  return isBbcodeAlignment(textAlign) ? textAlign : null;
+}
+
+function serializeAlignedElement(
+  element: HTMLElement,
+  children: string
+): string | null {
+  const alignTag = getAlignTagFromElement(element);
+  if (!alignTag) {
+    return null;
+  }
+
+  const trimmed = children.replace(/\n+$/, "");
+  return `[${alignTag}]${trimmed}[/${alignTag}]`;
+}
+
 function serializeElementChildren(element: Element): string {
   return serializeNodes(element.childNodes);
 }
@@ -939,6 +1013,12 @@ function serializeNode(node: ChildNode): string {
       if (element.classList.contains("bbcode-quote-body")) {
         return children;
       }
+      {
+        const aligned = serializeAlignedElement(element, children);
+        if (aligned) {
+          return `${aligned}\n`;
+        }
+      }
       return `${children}\n`;
     case "p":
       if (element.classList.contains("bbcode-write-exit")) {
@@ -946,6 +1026,12 @@ function serializeNode(node: ChildNode): string {
       }
       if (element.classList.contains("bbcode-quote-label")) {
         return "";
+      }
+      {
+        const aligned = serializeAlignedElement(element, children);
+        if (aligned) {
+          return `${aligned}\n`;
+        }
       }
       return `${children}\n`;
     case "hr":
