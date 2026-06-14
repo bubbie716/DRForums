@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import {
+  bumpUserSessionVersion,
+  createSession,
   getSessionUser,
   hashPassword,
+  invalidateAllUserSessions,
+  setSessionCookie,
   validatePassword,
   verifyPassword,
 } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import {
+  checkRateLimit,
+  getClientIp,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +25,17 @@ export async function POST(request: NextRequest) {
         { error: "You must be logged in to change your password." },
         { status: 401 }
       );
+    }
+
+    const ip = getClientIp(request.headers);
+    const rateLimit = checkRateLimit({
+      key: `change-password:${sessionUser.id}:${ip}`,
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
     }
 
     const body = await request.json();
@@ -71,6 +91,11 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       data: { passwordHash },
     });
+
+    await invalidateAllUserSessions(user.id);
+    await bumpUserSessionVersion(user.id);
+    const token = await createSession(user.id);
+    await setSessionCookie(token);
 
     return NextResponse.json({ success: true });
   } catch (error) {

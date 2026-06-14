@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { threadPageMetadata } from "@/lib/metadata";
 import { UserProfileLink } from "@/components/profile/UserProfileLink";
 import { notFound } from "next/navigation";
 import { canPost, getSessionUser, needsMinecraftLink } from "@/lib/auth";
@@ -30,10 +31,7 @@ export async function generateMetadata({
   params,
 }: ThreadPageProps): Promise<Metadata> {
   const { id } = await params;
-  const thread = await getThreadById(id);
-  return {
-    title: thread ? thread.title : "Thread",
-  };
+  return threadPageMetadata(id);
 }
 
 export default async function ThreadPage({ params }: ThreadPageProps) {

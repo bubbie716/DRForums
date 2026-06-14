@@ -20,13 +20,13 @@ import {
 } from "@/lib/role-hierarchy";
 import { formatBanExpiry } from "@/lib/bans";
 import { getActiveBan } from "@/lib/bans";
+import { getAdminUserDetailTitle } from "@/lib/metadata";
 
 type Props = { params: Promise<{ id: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const user = await getAdminUserDetail(id);
-  return { title: user ? `${user.username} · Admin` : "User · Admin" };
+  return { title: await getAdminUserDetailTitle(id) };
 }
 
 export default async function AdminUserDetailPage({ params }: Props) {

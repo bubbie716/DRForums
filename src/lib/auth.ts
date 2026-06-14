@@ -99,6 +99,15 @@ export function generateSessionToken(): string {
 }
 
 export async function createSession(userId: string): Promise<string> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { sessionVersion: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
   const token = generateSessionToken();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
 
@@ -107,10 +116,27 @@ export async function createSession(userId: string): Promise<string> {
       token,
       userId,
       expiresAt,
+      sessionVersion: user.sessionVersion,
     },
   });
 
   return token;
+}
+
+export async function invalidateAllUserSessions(userId: string): Promise<void> {
+  await prisma.session.deleteMany({
+    where: { userId },
+  });
+}
+
+export async function bumpUserSessionVersion(userId: string): Promise<number> {
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { sessionVersion: { increment: 1 } },
+    select: { sessionVersion: true },
+  });
+
+  return user.sessionVersion;
 }
 
 export async function setSessionCookie(token: string): Promise<void> {
@@ -147,6 +173,7 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
           username: true,
           role: true,
           minecraftUuid: true,
+          sessionVersion: true,
           userRoles: {
             include: {
               role: {
@@ -165,6 +192,19 @@ export const getSessionUser = cache(async (): Promise<SessionUser | null> => {
 
   if (session.expiresAt < new Date()) {
     await prisma.session.delete({ where: { id: session.id } });
+    return null;
+  }
+
+  if (session.sessionVersion !== session.user.sessionVersion) {
+    await prisma.session.delete({ where: { id: session.id } });
+    await clearSessionCookie();
+    return null;
+  }
+
+  const activeBan = await getActiveBan(session.user.id);
+  if (activeBan) {
+    await prisma.session.deleteMany({ where: { userId: session.user.id } });
+    await clearSessionCookie();
     return null;
   }
 

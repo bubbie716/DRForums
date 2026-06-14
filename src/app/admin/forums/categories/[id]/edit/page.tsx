@@ -6,6 +6,7 @@ import { getCategoryRoleAccessRows } from "@/lib/admin/forum-role-permission-que
 import { Breadcrumbs } from "@/components/forum/Breadcrumbs";
 import { CategoryForm } from "@/components/admin/CategoryForm";
 import { ForumRoleAccessSection } from "@/components/admin/ForumRoleAccessSection";
+import { getAdminCategoryEditTitle } from "@/lib/metadata";
 
 type EditCategoryPageProps = {
   params: Promise<{ id: string }>;
@@ -15,10 +16,7 @@ export async function generateMetadata({
   params,
 }: EditCategoryPageProps): Promise<Metadata> {
   const { id } = await params;
-  const category = await getAdminCategoryById(id);
-  return {
-    title: category ? `Edit ${category.name}` : "Edit Category",
-  };
+  return { title: await getAdminCategoryEditTitle(id) };
 }
 
 export default async function EditCategoryPage({ params }: EditCategoryPageProps) {

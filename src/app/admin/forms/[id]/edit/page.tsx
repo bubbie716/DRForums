@@ -7,6 +7,7 @@ import { getAdminCategoryOptions } from "@/lib/admin/queries";
 import { getAdminRoles } from "@/lib/admin/role-queries";
 import { getSessionUser } from "@/lib/auth";
 import { getFormByIdForAdmin } from "@/lib/form/queries";
+import { getAdminFormEditTitle } from "@/lib/metadata";
 import { hasPermission } from "@/lib/permissions";
 
 type Props = {
@@ -15,8 +16,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const form = await getFormByIdForAdmin(id);
-  return { title: form ? `Edit ${form.title} · Admin` : "Edit Form · Admin" };
+  return { title: await getAdminFormEditTitle(id) };
 }
 
 export default async function AdminEditFormPage({ params }: Props) {

@@ -9,6 +9,7 @@ import { getForumRoleAccessRows } from "@/lib/admin/forum-role-permission-querie
 import { Breadcrumbs } from "@/components/forum/Breadcrumbs";
 import { ForumForm } from "@/components/admin/ForumForm";
 import { ForumRoleAccessSection } from "@/components/admin/ForumRoleAccessSection";
+import { getAdminForumEditTitle } from "@/lib/metadata";
 
 type EditForumPageProps = {
   params: Promise<{ id: string }>;
@@ -18,10 +19,7 @@ export async function generateMetadata({
   params,
 }: EditForumPageProps): Promise<Metadata> {
   const { id } = await params;
-  const forum = await getAdminForumById(id);
-  return {
-    title: forum ? `Edit ${forum.name}` : "Edit Subcategory",
-  };
+  return { title: await getAdminForumEditTitle(id) };
 }
 
 export default async function EditForumPage({ params }: EditForumPageProps) {

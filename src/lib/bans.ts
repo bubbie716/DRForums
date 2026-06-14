@@ -4,6 +4,7 @@ export {
   BAN_RESTRICTED_MESSAGE,
   FORUM_BAN_SCOPE_NOTE,
   formatBanExpiry,
+  formatLoginBanMessage,
 } from "@/lib/ban-copy";
 
 export type ActiveBanInfo = {

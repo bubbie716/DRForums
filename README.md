@@ -1,83 +1,53 @@
 # District Roleplay Forum
 
-A classic municipal forum for the District Roleplay community. Built with Next.js App Router, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
+Community forum for District Roleplay — categories, threads, posts, direct messages, polls, application forms, search, and admin tooling. Built with Next.js App Router, TypeScript, Tailwind CSS, Prisma, and PostgreSQL.
 
-## Features (V1)
-
-- Username/password authentication with bcrypt and HTTP-only session cookies
-- Role-based access: USER, MODERATOR, ADMIN
-- Forum hierarchy: Category → Forum → Thread → Post
-- Forum index with category sections and latest activity
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- PostgreSQL database
-
-### Setup
-
-1. Install dependencies:
+## Quick Start
 
 ```bash
 npm install
-```
-
-2. Copy the environment file and configure your database:
-
-```bash
 cp .env.example .env
-```
-
-Edit `.env` with your PostgreSQL connection string.
-
-3. Push the schema and seed sample data:
-
-```bash
-npm run db:push
+npm run db:migrate
 npm run db:seed
-```
-
-4. Start the development server:
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the forum index.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Default Admin Account
+Default seeded admin: `admin` / `changeme123` (change in production).
 
-After seeding:
+## Common Commands
 
-- **Username:** `admin`
-- **Password:** `changeme123`
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run db:migrate` | Apply Prisma migrations |
+| `npm run db:seed` | Seed sample data |
+| `npm run db:generate` | Regenerate Prisma client |
 
-Change this password immediately in production.
+## Features (V1+)
+
+- Username/password authentication with bcrypt and HTTP-only session cookies
+- Role-based access: USER, MODERATOR, ADMIN + granular AppRole permissions
+- Forum hierarchy: Category → Forum → Thread → Post
+- Direct messages, polls, forms, global search, Minecraft account linking
+- Admin panel for forums, users, roles, bans, and site settings
 
 ## Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router pages and API routes
-│   ├── api/auth/           # Register, login, logout, session
-│   └── page.tsx            # Forum index
-├── components/
-│   ├── forum/              # Forum-specific UI components
-│   ├── layout/             # Header, footer
-│   └── ui/                 # Shared UI primitives
-└── lib/
-    ├── auth/               # Password hashing, sessions, validation
-    ├── forum/              # Forum data queries
-    └── prisma.ts           # Prisma client singleton
+├── app/           # Next.js App Router pages and API routes
+├── components/    # UI by feature area
+└── lib/           # Server logic, queries, actions, auth
 prisma/
-├── schema.prisma           # Database schema
-└── seed.ts                 # Sample categories and forums
+├── schema.prisma
+└── migrations/
 ```
 
 ## Design
 
-- Dark charcoal background with orange accent (`#E29027`)
-- Desktop-first classic forum layout
-- Professional city/government aesthetic
+- Orange accent (`#E29027`) with cream/white cards
+- Classic municipal forum layout

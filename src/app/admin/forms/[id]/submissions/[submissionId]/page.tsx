@@ -7,6 +7,7 @@ import {
   getFormByIdForAdmin,
   getSubmissionDetail,
 } from "@/lib/form/queries";
+import { getAdminSubmissionDetailTitle } from "@/lib/metadata";
 import { hasPermission } from "@/lib/permissions";
 
 type Props = {
@@ -15,12 +16,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { submissionId } = await params;
-  const submission = await getSubmissionDetail(submissionId);
-  return {
-    title: submission
-      ? `Submission · ${submission.formTitle} · Admin`
-      : "Submission · Admin",
-  };
+  return { title: await getAdminSubmissionDetailTitle(submissionId) };
 }
 
 export default async function AdminSubmissionDetailPage({ params }: Props) {

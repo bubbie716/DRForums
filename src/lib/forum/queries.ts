@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { calculateReactionRatioFromPostReactions } from "@/lib/forum/reactions";
 import { canViewThread, getForumAccessMap } from "@/lib/forumAccess";
+import {
+  buildPostVisibilityFilter,
+  buildSearchAccessContext,
+  buildThreadVisibilityFilter,
+} from "@/lib/search/permissions";
 import { withDisplayRole } from "@/lib/display-role";
 import { getUserDisplayRole, getUsersDisplayRoles } from "@/lib/permissions";
 
@@ -149,7 +154,7 @@ export async function getForumIndex(
           if (includeHidden) {
             return true;
           }
-          return accessMap?.get(forum.id)?.canView ?? true;
+          return accessMap?.get(forum.id)?.canView ?? false;
         })
         .map((forum) => ({
           id: forum.id,
@@ -382,12 +387,6 @@ export async function getPublicProfile(
       role: true,
       createdAt: true,
       minecraftUsername: true,
-      _count: {
-        select: {
-          threads: true,
-          posts: true,
-        },
-      },
     },
   });
 
@@ -395,20 +394,54 @@ export async function getPublicProfile(
     return null;
   }
 
-  const [recentPosts, reactionRatio, displayRole] = await Promise.all([
-    getUserRecentPosts(user.id, 15, viewerId),
-    getUserReactionRatio(user.id),
-    getUserDisplayRole(user.id),
-  ]);
+  const [recentPosts, reactionRatio, displayRole, activityCounts] =
+    await Promise.all([
+      getUserRecentPosts(user.id, 15, viewerId),
+      getUserReactionRatio(user.id),
+      getUserDisplayRole(user.id),
+      getProfileVisibleActivityCounts(user.id, viewerId),
+    ]);
 
   return {
     ...user,
+    _count: activityCounts,
     displayRole: displayRole
       ? { name: displayRole.name, color: displayRole.color }
       : null,
     recentPosts,
     reactionRatio,
   };
+}
+
+async function getProfileVisibleActivityCounts(
+  userId: string,
+  viewerId: string | null
+) {
+  const context = await buildSearchAccessContext(viewerId, {});
+  const threadFilter = buildThreadVisibilityFilter(
+    context.forumAccess,
+    viewerId
+  );
+  const postFilter = buildPostVisibilityFilter(context.forumAccess, viewerId);
+
+  if (!threadFilter || !postFilter) {
+    return { threads: 0, posts: 0 };
+  }
+
+  const [threads, posts] = await Promise.all([
+    prisma.thread.count({
+      where: {
+        AND: [{ authorId: userId }, threadFilter],
+      },
+    }),
+    prisma.post.count({
+      where: {
+        AND: [{ authorId: userId }, postFilter],
+      },
+    }),
+  ]);
+
+  return { threads, posts };
 }
 
 /** Profile reaction ratio from forum posts only; DM message reactions are excluded. */

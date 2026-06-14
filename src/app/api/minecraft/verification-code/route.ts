@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
+  checkRateLimit,
+  getClientIp,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
+import {
   CODE_EXPIRY_MINUTES,
   generateVerificationCode,
   getCodeExpiryDate,
@@ -19,8 +24,30 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const rawUuid = String(body.uuid ?? "");
     const minecraftUsername = String(body.username ?? "").trim();
-
     const minecraftUuid = normalizeMinecraftUuid(rawUuid);
+
+    const ip = getClientIp(request.headers);
+    const ipLimit = checkRateLimit({
+      key: `minecraft-verify:${ip}`,
+      limit: 5,
+      windowMs: 10 * 60 * 1000,
+    });
+
+    if (!ipLimit.allowed) {
+      return rateLimitResponse(ipLimit.retryAfterSeconds);
+    }
+
+    if (minecraftUuid) {
+      const uuidLimit = checkRateLimit({
+        key: `minecraft-verify:uuid:${minecraftUuid}`,
+        limit: 5,
+        windowMs: 10 * 60 * 1000,
+      });
+
+      if (!uuidLimit.allowed) {
+        return rateLimitResponse(uuidLimit.retryAfterSeconds);
+      }
+    }
 
     if (!minecraftUuid || !validateMinecraftUuid(minecraftUuid)) {
       return NextResponse.json(

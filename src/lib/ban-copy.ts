@@ -10,3 +10,10 @@ export function formatBanExpiry(expiresAt: Date | null): string {
   }
   return expiresAt.toLocaleString();
 }
+
+export function formatLoginBanMessage(
+  reason: string,
+  expiresAt: Date | null
+): string {
+  return `This account is banned. Reason: ${reason}. Expires: ${formatBanExpiry(expiresAt)}.`;
+}

@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getActiveBan, formatLoginBanMessage } from "@/lib/bans";
+import {
+  checkRateLimit,
+  getClientIp,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
 import {
   createSession,
   setSessionCookie,
@@ -10,6 +16,17 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request.headers);
+    const rateLimit = checkRateLimit({
+      key: `login:${ip}`,
+      limit: 5,
+      windowMs: 10 * 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
+    }
+
     const body = await request.json();
     const username = String(body.username ?? "").trim();
     const password = String(body.password ?? "");
@@ -47,6 +64,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Invalid username or password." },
         { status: 401 }
+      );
+    }
+
+    const activeBan = await getActiveBan(user.id);
+    if (activeBan) {
+      return NextResponse.json(
+        {
+          error: formatLoginBanMessage(
+            activeBan.reason,
+            activeBan.expiresAt
+          ),
+        },
+        { status: 403 }
       );
     }
 

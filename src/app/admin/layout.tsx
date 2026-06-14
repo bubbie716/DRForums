@@ -1,6 +1,7 @@
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminUnsavedChangesShell } from "@/components/admin/AdminUnsavedChangesShell";
 import { getSessionUser, isAdmin } from "@/lib/auth";
+import { requireAdminPermission } from "@/lib/admin/auth";
 import { getUserPermissions } from "@/lib/permissions";
 import { ALL_PERMISSION_KEYS } from "@/lib/permissions/definitions";
 
@@ -9,6 +10,8 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdminPermission("admin.dashboard.view");
+
   const user = await getSessionUser();
   const permissions = user
     ? isAdmin(user.role)

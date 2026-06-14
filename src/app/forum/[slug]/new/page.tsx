@@ -4,6 +4,7 @@ import { getSessionUser, needsMinecraftLink } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { isPollsEnabled } from "@/lib/settings";
 import { getForumBySlug } from "@/lib/forum/queries";
+import { newThreadPageMetadata } from "@/lib/metadata";
 import {
   canCreateThread,
   canReadForum,
@@ -21,10 +22,7 @@ export async function generateMetadata({
   params,
 }: NewThreadPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const forum = await getForumBySlug(slug);
-  return {
-    title: forum ? `New Thread · ${forum.name}` : "New Thread",
-  };
+  return newThreadPageMetadata(slug);
 }
 
 export default async function NewThreadPage({ params }: NewThreadPageProps) {

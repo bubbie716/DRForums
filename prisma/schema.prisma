@@ -18,6 +18,7 @@ model User {
   username          String    @unique
   passwordHash      String
   role              Role      @default(USER)
+  sessionVersion    Int       @default(0)
   minecraftUuid     String?   @unique
   minecraftUsername String?
   minecraftLinkedAt DateTime?
@@ -249,11 +250,12 @@ model MinecraftVerificationCode {
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id             String   @id @default(cuid())
+  token          String   @unique
+  userId         String
+  sessionVersion Int      @default(0)
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

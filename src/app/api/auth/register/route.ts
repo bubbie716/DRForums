@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
+  checkRateLimit,
+  getClientIp,
+  rateLimitResponse,
+} from "@/lib/rate-limit";
+import {
   createSession,
   hashPassword,
   setSessionCookie,
@@ -11,6 +16,17 @@ import { isRegistrationEnabled } from "@/lib/settings";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request.headers);
+    const rateLimit = checkRateLimit({
+      key: `register:${ip}`,
+      limit: 5,
+      windowMs: 60 * 60 * 1000,
+    });
+
+    if (!rateLimit.allowed) {
+      return rateLimitResponse(rateLimit.retryAfterSeconds);
+    }
+
     if (!(await isRegistrationEnabled())) {
       return NextResponse.json(
         { error: "Registration is currently disabled." },

@@ -5,6 +5,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { SubmissionStatusBadge } from "@/components/forms/SubmissionStatusBadge";
 import { getSessionUser } from "@/lib/auth";
 import { getFormByIdForAdmin, getFormSubmissionsList } from "@/lib/form/queries";
+import { getAdminFormSubmissionsTitle } from "@/lib/metadata";
 import { hasPermission } from "@/lib/permissions";
 import { formatDate } from "@/lib/utils";
 
@@ -14,10 +15,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const form = await getFormByIdForAdmin(id);
-  return {
-    title: form ? `Submissions · ${form.title} · Admin` : "Submissions · Admin",
-  };
+  return { title: await getAdminFormSubmissionsTitle(id) };
 }
 
 export default async function AdminFormSubmissionsPage({ params }: Props) {

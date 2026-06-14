@@ -1,6 +1,5 @@
 import type { Prisma } from "@prisma/client";
 import {
-  canViewThread,
   getForumAccessMap,
   userHasAdminRole,
 } from "@/lib/forumAccess";
@@ -32,7 +31,11 @@ export async function buildSearchAccessContext(
   const includeHidden = Boolean(options.includeHidden && userId);
 
   if (includeHidden && userId && !(await userHasAdminRole(userId))) {
-    throw new Error("FORBIDDEN_HIDDEN");
+    return {
+      forumAccess: [],
+      forumMap: new Map(),
+      categoryMap: new Map(),
+    };
   }
 
   const categories = await prisma.category.findMany({
@@ -189,30 +192,74 @@ export async function filterVisibleThreadResults(
   userId: string | null,
   results: ThreadSearchResult[]
 ): Promise<ThreadSearchResult[]> {
-  const visible: ThreadSearchResult[] = [];
-
-  for (const result of results) {
-    if (await canViewThread(userId, result.id)) {
-      visible.push(result);
-    }
+  if (results.length === 0) {
+    return [];
   }
 
-  return visible;
+  const threadIds = results.map((result) => result.id);
+  const threads = await prisma.thread.findMany({
+      where: { id: { in: threadIds } },
+      select: { id: true, authorId: true, forumId: true },
+    });
+
+  const forumIds = [...new Set(threads.map((thread) => thread.forumId))];
+  const accessMap = await getForumAccessMap(userId, forumIds);
+  const threadMap = new Map(threads.map((thread) => [thread.id, thread]));
+
+  return results.filter((result) => {
+    const thread = threadMap.get(result.id);
+    if (!thread) {
+      return false;
+    }
+
+    const access = accessMap.get(thread.forumId);
+    if (!access?.canView || !access.canRead) {
+      return false;
+    }
+
+    if (access.canViewOtherThreads || access.canModerate) {
+      return true;
+    }
+
+    return userId !== null && thread.authorId === userId;
+  });
 }
 
 export async function filterVisiblePostResults(
   userId: string | null,
   results: PostSearchResult[]
 ): Promise<PostSearchResult[]> {
-  const visible: PostSearchResult[] = [];
-
-  for (const result of results) {
-    if (await canViewThread(userId, result.thread.id)) {
-      visible.push(result);
-    }
+  if (results.length === 0) {
+    return [];
   }
 
-  return visible;
+  const threadIds = [...new Set(results.map((result) => result.thread.id))];
+  const threads = await prisma.thread.findMany({
+      where: { id: { in: threadIds } },
+      select: { id: true, authorId: true, forumId: true },
+    });
+
+  const forumIds = [...new Set(threads.map((thread) => thread.forumId))];
+  const accessMap = await getForumAccessMap(userId, forumIds);
+  const threadMap = new Map(threads.map((thread) => [thread.id, thread]));
+
+  return results.filter((result) => {
+    const thread = threadMap.get(result.thread.id);
+    if (!thread) {
+      return false;
+    }
+
+    const access = accessMap.get(thread.forumId);
+    if (!access?.canView || !access.canRead) {
+      return false;
+    }
+
+    if (access.canViewOtherThreads || access.canModerate) {
+      return true;
+    }
+
+    return userId !== null && thread.authorId === userId;
+  });
 }
 
 export function getSearchFilterOptions(context: SearchAccessContext): {

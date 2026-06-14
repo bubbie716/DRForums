@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword, bumpUserSessionVersion, invalidateAllUserSessions } from "@/lib/auth";
 import { assertAdminPermission } from "@/lib/admin/auth";
 import { getSessionUser } from "@/lib/auth";
 import {
@@ -39,6 +39,7 @@ function legacyRoleForSlug(slug: string): LegacyRole {
   return "USER";
 }
 
+// TODO: Consolidate duplicated AdminActionResult types across admin action modules.
 export type AdminActionResult =
   | { success: true; message?: string }
   | { success: false; error: string };
@@ -66,6 +67,9 @@ export async function adminResetUserPassword(
     data: { passwordHash },
   });
 
+  await invalidateAllUserSessions(userId);
+  await bumpUserSessionVersion(userId);
+
   await createModerationLog({
     actorId: actor.id,
     targetUserId: userId,
@@ -76,8 +80,7 @@ export async function adminResetUserPassword(
   revalidatePath(`/admin/users/${userId}`);
   return {
     success: true,
-    message:
-      "Password reset to changeme123. Tell the user to log in and change it immediately.",
+    message: "Password reset. Tell the user to log in and change it immediately.",
   };
 }
 

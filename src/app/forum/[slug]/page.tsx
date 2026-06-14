@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { isFormsEnabled } from "@/lib/settings";
 import { getForumBySlug, getForumThreads } from "@/lib/forum/queries";
 import { getPublicFormByForumId } from "@/lib/form/queries";
+import { forumPageMetadata } from "@/lib/metadata";
 import { FORM_CITIZEN_REQUIRED_MESSAGE } from "@/lib/form/types";
 import {
   canCreateThread,
@@ -25,10 +26,7 @@ export async function generateMetadata({
   params,
 }: ForumPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const forum = await getForumBySlug(slug);
-  return {
-    title: forum ? forum.name : "Forum",
-  };
+  return forumPageMetadata(slug);
 }
 
 export default async function ForumPage({ params }: ForumPageProps) {
