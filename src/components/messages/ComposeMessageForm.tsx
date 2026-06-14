@@ -16,7 +16,7 @@ import {
   formFieldWrapperClassName,
   formInputClassName,
 } from "@/components/ui/fieldStyles";
-import { MinecraftHead } from "@/components/forum/MinecraftHead";
+import { UserAvatar } from "@/components/profile/UserAvatar";
 import { RecipientChip, type Recipient } from "@/components/messages/RecipientChip";
 import { cn } from "@/lib/utils";
 
@@ -212,8 +212,9 @@ export function ComposeMessageForm({
                       }}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover transition-colors"
                     >
-                      <MinecraftHead
+                      <UserAvatar
                         seed={suggestion.id}
+                        avatarUrl={suggestion.avatarUrl}
                         minecraftUsername={suggestion.minecraftUsername}
                         size={36}
                       />

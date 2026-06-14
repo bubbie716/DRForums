@@ -1,9 +1,10 @@
-import { MinecraftHead } from "@/components/forum/MinecraftHead";
+import { UserAvatar } from "@/components/profile/UserAvatar";
 
 export type Recipient = {
   id: string;
   username: string;
   minecraftUsername: string | null;
+  avatarUrl: string | null;
 };
 
 type RecipientChipProps = {
@@ -14,8 +15,9 @@ type RecipientChipProps = {
 export function RecipientChip({ recipient, onRemove }: RecipientChipProps) {
   return (
     <span className="inline-flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-xl bg-white border border-border shadow-sm max-w-full">
-      <MinecraftHead
+      <UserAvatar
         seed={recipient.id}
+        avatarUrl={recipient.avatarUrl}
         minecraftUsername={recipient.minecraftUsername}
         size={28}
       />

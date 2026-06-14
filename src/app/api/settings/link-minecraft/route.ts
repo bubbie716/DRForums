@@ -5,7 +5,9 @@ import {
   isValidVerificationCodeFormat,
   normalizeVerificationCode,
 } from "@/lib/minecraft-verification";
-import { syncMemberRoleForUser } from "@/lib/user-member-roles";
+import { assignCitizenRoleOnMinecraftLink } from "@/lib/user-member-roles";
+import { clearPermissionCache } from "@/lib/permissions";
+import { createModerationLog, MODERATION_ACTIONS } from "@/lib/moderation-log";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +34,7 @@ export async function POST(request: NextRequest) {
       where: { id: sessionUser.id },
       select: {
         id: true,
+        username: true,
         minecraftUuid: true,
       },
     });
@@ -86,27 +89,46 @@ export async function POST(request: NextRequest) {
 
     const linkedAt = new Date();
 
-    await prisma.$transaction([
-      prisma.user.update({
+    const roleResult = await prisma.$transaction(async (tx) => {
+      await tx.user.update({
         where: { id: currentUser.id },
         data: {
           minecraftUuid: verificationCode.minecraftUuid,
           minecraftUsername: verificationCode.minecraftUsername,
           minecraftLinkedAt: linkedAt,
         },
-      }),
-      prisma.minecraftVerificationCode.update({
+      });
+      await tx.minecraftVerificationCode.update({
         where: { id: verificationCode.id },
         data: { usedAt: linkedAt },
-      }),
-    ]);
+      });
 
-    await syncMemberRoleForUser(currentUser.id);
+      return assignCitizenRoleOnMinecraftLink(currentUser.id, tx);
+    });
+
+    if (roleResult.assignedRoleSlug) {
+      clearPermissionCache(currentUser.id);
+    }
+
+    if (roleResult.promotedToCitizen) {
+      await createModerationLog({
+        actorId: currentUser.id,
+        targetUserId: currentUser.id,
+        action: MODERATION_ACTIONS.USER_ROLE_ASSIGNED,
+        details: {
+          username: currentUser.username,
+          role: "Citizen",
+          source: "minecraft_link",
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
       minecraftUsername: verificationCode.minecraftUsername,
       minecraftLinkedAt: linkedAt.toISOString(),
+      promotedToCitizen: roleResult.promotedToCitizen,
+      assignedRole: roleResult.promotedToCitizen ? "Citizen" : null,
     });
   } catch (error) {
     console.error("Link Minecraft error:", error);

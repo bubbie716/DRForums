@@ -3,6 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MentionTextarea } from "@/components/mentions/MentionTextarea";
+import { UserAvatar } from "@/components/profile/UserAvatar";
+import { searchMentionUsers } from "@/lib/mentions/actions";
+import {
+  getContentEditableCaretOffset,
+  getContentEditablePlainText,
+  getTextOffsetCaretRect,
+  replaceTextRangeInContentEditable,
+} from "@/lib/mentions/contentEditable";
+import { getActiveMentionAtCursor } from "@/lib/mentions/parse";
 import { textareaClassName } from "@/components/ui/AutoResizeTextarea";
 import {
   DropdownPortal,
@@ -59,6 +68,21 @@ type SelectedImageOverlay = {
 
 const MIN_IMAGE_WIDTH = 50;
 const MAX_IMAGE_WIDTH = 1200;
+const MENTION_POPUP_WIDTH = 176;
+const MENTION_POPUP_OFFSET_X = 6;
+const MENTION_POPUP_OFFSET_Y = 2;
+
+type MentionUser = {
+  id: string;
+  username: string;
+  minecraftUsername: string | null;
+  avatarUrl: string | null;
+};
+
+type MentionPopupPosition = {
+  top: number;
+  left: number;
+};
 
 type BBCodeEditorProps = {
   value: string;
@@ -937,6 +961,18 @@ export function BBCodeEditor({
   });
   const [colorMenuOpen, setColorMenuOpen] = useState(false);
   const [alignMenuOpen, setAlignMenuOpen] = useState(false);
+  const [writeMentionSuggestions, setWriteMentionSuggestions] = useState<
+    MentionUser[]
+  >([]);
+  const [writeShowMentionSuggestions, setWriteShowMentionSuggestions] =
+    useState(false);
+  const [writeMentionActiveIndex, setWriteMentionActiveIndex] = useState(0);
+  const [writeMentionStart, setWriteMentionStart] = useState<number | null>(
+    null
+  );
+  const [writeMentionQuery, setWriteMentionQuery] = useState("");
+  const [writeMentionPopupPosition, setWriteMentionPopupPosition] =
+    useState<MentionPopupPosition | null>(null);
   const [customColor, setCustomColor] = useState(DEFAULT_TEXT_COLOR);
   const [textColorControl, setTextColorControl] = useState(DEFAULT_TEXT_COLOR);
   const [fontSizeControl, setFontSizeControl] = useState(DEFAULT_FONT_SIZE);
@@ -979,6 +1015,72 @@ export function BBCodeEditor({
   useEffect(() => {
     setPortalReady(true);
   }, []);
+
+  useEffect(() => {
+    if (mode !== "write") {
+      setWriteShowMentionSuggestions(false);
+      setWriteMentionSuggestions([]);
+      setWriteMentionQuery("");
+      setWriteMentionStart(null);
+      setWriteMentionPopupPosition(null);
+      return;
+    }
+
+    if (writeMentionQuery.length < 1) {
+      setWriteMentionSuggestions([]);
+      setWriteShowMentionSuggestions(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(async () => {
+      const results = await searchMentionUsers(writeMentionQuery);
+      setWriteMentionSuggestions(results);
+      setWriteShowMentionSuggestions(results.length > 0);
+      setWriteMentionActiveIndex(0);
+    }, 250);
+
+    return () => window.clearTimeout(timeout);
+  }, [mode, writeMentionQuery]);
+
+  useEffect(() => {
+    if (!writeShowMentionSuggestions || writeMentionSuggestions.length === 0) {
+      setWriteMentionPopupPosition(null);
+      return;
+    }
+
+    updateWriteMentionPopupPosition();
+  }, [
+    writeShowMentionSuggestions,
+    writeMentionSuggestions,
+    value,
+    mode,
+  ]);
+
+  useEffect(() => {
+    if (!writeShowMentionSuggestions) {
+      return;
+    }
+
+    const editor = writeEditorRef.current;
+
+    function handleReposition() {
+      updateWriteMentionPopupPosition();
+    }
+
+    editor?.addEventListener("scroll", handleReposition);
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+    window.visualViewport?.addEventListener("resize", handleReposition);
+    window.visualViewport?.addEventListener("scroll", handleReposition);
+
+    return () => {
+      editor?.removeEventListener("scroll", handleReposition);
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+      window.visualViewport?.removeEventListener("resize", handleReposition);
+      window.visualViewport?.removeEventListener("scroll", handleReposition);
+    };
+  }, [writeShowMentionSuggestions]);
 
   useEffect(() => {
     if (!imageModalOpen) {
@@ -1302,11 +1404,123 @@ export function BBCodeEditor({
     editor.style.removeProperty("height");
   }
 
+  function updateWriteMentionPopupPosition() {
+    const editor = writeEditorRef.current;
+    if (!editor) {
+      return;
+    }
+
+    const cursor = getContentEditableCaretOffset(editor);
+    if (cursor === null) {
+      return;
+    }
+
+    const rect = getTextOffsetCaretRect(editor, cursor);
+    if (!rect) {
+      return;
+    }
+
+    setWriteMentionPopupPosition({
+      top: rect.bottom + MENTION_POPUP_OFFSET_Y,
+      left: rect.left + MENTION_POPUP_OFFSET_X,
+    });
+  }
+
+  function updateWriteMentionState() {
+    const editor = writeEditorRef.current;
+    if (!editor) {
+      return;
+    }
+
+    const text = getContentEditablePlainText(editor);
+    const cursor = getContentEditableCaretOffset(editor);
+    if (cursor === null) {
+      return;
+    }
+
+    const activeMention = getActiveMentionAtCursor(text, cursor);
+
+    if (!activeMention) {
+      setWriteMentionStart(null);
+      setWriteMentionQuery("");
+      setWriteShowMentionSuggestions(false);
+      return;
+    }
+
+    setWriteMentionStart(activeMention.start);
+    setWriteMentionQuery(activeMention.query);
+  }
+
+  function insertWriteMention(username: string) {
+    const editor = writeEditorRef.current;
+    if (!editor || writeMentionStart === null) {
+      return;
+    }
+
+    const cursor = getContentEditableCaretOffset(editor);
+    if (cursor === null) {
+      return;
+    }
+
+    replaceTextRangeInContentEditable(
+      editor,
+      writeMentionStart,
+      cursor,
+      `@${username} `
+    );
+
+    setWriteMentionStart(null);
+    setWriteMentionQuery("");
+    setWriteMentionSuggestions([]);
+    setWriteShowMentionSuggestions(false);
+    setWriteMentionPopupPosition(null);
+    syncValueFromWrite();
+    editor.focus();
+  }
+
+  function handleWriteEditorKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (writeShowMentionSuggestions && writeMentionSuggestions.length > 0) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setWriteMentionActiveIndex((current) =>
+          current + 1 >= writeMentionSuggestions.length ? 0 : current + 1
+        );
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setWriteMentionActiveIndex((current) =>
+          current - 1 < 0
+            ? writeMentionSuggestions.length - 1
+            : current - 1
+        );
+        return;
+      }
+
+      if (event.key === "Enter" || event.key === "Tab") {
+        event.preventDefault();
+        insertWriteMention(
+          writeMentionSuggestions[writeMentionActiveIndex].username
+        );
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setWriteShowMentionSuggestions(false);
+        return;
+      }
+    }
+  }
+
   function syncValueFromWrite() {
     const html = writeEditorRef.current?.innerHTML ?? "";
-    emitChange(htmlToBbcode(html));
+    const bbcode = htmlToBbcode(html);
+    emitChange(bbcode);
     syncWriteEditorHeight();
     updateSelectedImageOverlay();
+    updateWriteMentionState();
   }
 
   function updateSelectedImageOverlay() {
@@ -1504,12 +1718,29 @@ export function BBCodeEditor({
 
   function handleWriteEditorBlur(event: React.FocusEvent<HTMLDivElement>) {
     captureWriteCaret();
+    window.setTimeout(() => setWriteShowMentionSuggestions(false), 150);
 
     if (isFocusWithinEditorChrome(event.relatedTarget)) {
       return;
     }
 
     syncValueFromWrite();
+  }
+
+  function handleWriteEditorKeyUp() {
+    updateWriteFormatState();
+    updateWriteMentionState();
+    if (writeShowMentionSuggestions) {
+      updateWriteMentionPopupPosition();
+    }
+  }
+
+  function handleWriteEditorMouseUp() {
+    updateWriteFormatState();
+    updateWriteMentionState();
+    if (writeShowMentionSuggestions) {
+      updateWriteMentionPopupPosition();
+    }
   }
 
   function handleBbcodeEditorBlur() {
@@ -2378,10 +2609,17 @@ export function BBCodeEditor({
               data-placeholder={placeholder}
               onInput={syncValueFromWrite}
               onBlur={handleWriteEditorBlur}
-              onKeyUp={updateWriteFormatState}
-              onMouseUp={updateWriteFormatState}
+              onKeyDown={handleWriteEditorKeyDown}
+              onKeyUp={handleWriteEditorKeyUp}
+              onMouseUp={handleWriteEditorMouseUp}
               onFocus={updateWriteFormatState}
-              onClick={handleWriteEditorClick}
+              onClick={(event) => {
+                handleWriteEditorClick(event);
+                updateWriteMentionState();
+                if (writeShowMentionSuggestions) {
+                  updateWriteMentionPopupPosition();
+                }
+              }}
               className={cn(
                 textareaClassName,
                 "bbcode-content bbcode-write-editor py-3 leading-relaxed",
@@ -2411,6 +2649,58 @@ export function BBCodeEditor({
                   }}
                 />
               </div>
+            ) : null}
+            {writeShowMentionSuggestions &&
+            writeMentionSuggestions.length > 0 &&
+            writeMentionPopupPosition ? (
+              <DropdownPortal>
+                <ul
+                  role="listbox"
+                  style={{
+                    position: "fixed",
+                    top: writeMentionPopupPosition.top,
+                    left: writeMentionPopupPosition.left,
+                    width: MENTION_POPUP_WIDTH,
+                    transform: "translateZ(0)",
+                  }}
+                  className={cn(dropdownPanelClassName, "rounded-lg")}
+                >
+                  {writeMentionSuggestions.map((suggestion, index) => (
+                    <li
+                      key={suggestion.id}
+                      role="option"
+                      aria-selected={index === writeMentionActiveIndex}
+                    >
+                      <button
+                        type="button"
+                        onMouseDown={() =>
+                          insertWriteMention(suggestion.username)
+                        }
+                        onTouchEnd={(event) => {
+                          event.preventDefault();
+                          insertWriteMention(suggestion.username);
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2 px-2.5 py-2 text-left transition-colors",
+                          index === writeMentionActiveIndex
+                            ? "bg-hover"
+                            : "hover:bg-hover"
+                        )}
+                      >
+                        <UserAvatar
+                          seed={suggestion.id}
+                          avatarUrl={suggestion.avatarUrl}
+                          minecraftUsername={suggestion.minecraftUsername}
+                          size={28}
+                        />
+                        <span className="min-w-0 text-sm font-semibold text-text-dark truncate">
+                          {suggestion.username}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </DropdownPortal>
             ) : null}
           </div>
           <p className="text-xs text-text-secondary">

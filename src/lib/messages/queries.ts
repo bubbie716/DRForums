@@ -302,6 +302,7 @@ export async function getRecipientByUsername(
       id: true,
       username: true,
       minecraftUsername: true,
+      avatarUrl: true,
     },
   });
 
@@ -335,6 +336,7 @@ export async function searchUsersByUsername(
       id: true,
       username: true,
       minecraftUsername: true,
+      avatarUrl: true,
     },
     orderBy: { username: "asc" },
     take: limit,

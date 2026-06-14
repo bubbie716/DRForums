@@ -39,7 +39,11 @@ export function LinkMinecraftForm() {
         return;
       }
 
-      setSuccess("Minecraft account linked successfully.");
+      setSuccess(
+        data.promotedToCitizen
+          ? "Minecraft account linked. You are now a Citizen and can post on the forums."
+          : "Minecraft account linked successfully."
+      );
       setCodeDigits("");
       router.refresh();
     } catch {

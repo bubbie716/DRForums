@@ -13,7 +13,7 @@ import {
   DropdownPortal,
   dropdownPanelClassName,
 } from "@/components/ui/dropdown";
-import { MinecraftHead } from "@/components/forum/MinecraftHead";
+import { UserAvatar } from "@/components/profile/UserAvatar";
 import { searchMentionUsers } from "@/lib/mentions/actions";
 import { getTextareaCaretOffset } from "@/lib/mentions/caretPosition";
 import { getActiveMentionAtCursor } from "@/lib/mentions/parse";
@@ -23,6 +23,7 @@ type MentionUser = {
   id: string;
   username: string;
   minecraftUsername: string | null;
+  avatarUrl: string | null;
 };
 
 type PopupPosition = {
@@ -304,8 +305,9 @@ export const MentionTextarea = forwardRef<
                     index === activeIndex ? "bg-hover" : "hover:bg-hover"
                   )}
                 >
-                  <MinecraftHead
+                  <UserAvatar
                     seed={suggestion.id}
+                    avatarUrl={suggestion.avatarUrl}
                     minecraftUsername={suggestion.minecraftUsername}
                     size={28}
                   />

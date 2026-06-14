@@ -72,7 +72,7 @@ export const SYSTEM_ROLE_DEFINITIONS = [
   {
     slug: SYSTEM_ROLE_SLUGS.CITIZEN,
     name: "Citizen",
-    description: "Full forum members. Granted manually or by linking Minecraft.",
+    description: "Full forum members. Assigned automatically when Minecraft is linked.",
     color: "#15803d",
     priority: 6,
     isDefault: false,
