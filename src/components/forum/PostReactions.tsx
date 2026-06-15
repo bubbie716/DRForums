@@ -1,9 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import type { ReactionType } from "@prisma/client";
 import { togglePostReaction } from "@/lib/forum/actions";
-import { ReactionsBar } from "@/components/shared/ReactionsBar";
+import { ReactionsBarPlaceholder } from "@/components/shared/ReactionsBarPlaceholder";
 import type { ReactionCounts } from "@/lib/forum/reactions";
+
+const ReactionsBar = dynamic(
+  () =>
+    import("@/components/shared/ReactionsBar").then((module) => module.ReactionsBar),
+  { ssr: false, loading: () => <ReactionsBarPlaceholder /> }
+);
 
 type PostReactionsProps = {
   postId: string;

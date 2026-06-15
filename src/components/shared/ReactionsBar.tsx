@@ -122,13 +122,18 @@ export function ReactionsBar({
   const [userReactions, setUserReactions] = useState(initialUserReactions);
   const [loading, setLoading] = useState<ReactionType | null>(null);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState(
-    () => expandedStateByItem.get(itemId) ?? false
-  );
+  const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const hasUserReaction = userReactions.length > 0;
   const activeReactionTypes = REACTION_TYPES.filter((type) => counts[type] > 0);
+
+  useEffect(() => {
+    const storedExpanded = expandedStateByItem.get(itemId);
+    if (storedExpanded) {
+      setExpanded(true);
+    }
+  }, [itemId]);
 
   useEffect(() => {
     expandedStateByItem.set(itemId, expanded);

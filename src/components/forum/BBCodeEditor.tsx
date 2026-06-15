@@ -31,6 +31,14 @@ import {
   type BbcodeAlignment,
 } from "@/lib/bbcode";
 import {
+  applyWriteRunToRange,
+  editorNeedsNormalize,
+  getWriteSelectionOffsets,
+  normalizeWriteEditorHtml,
+  restoreWriteSelectionOffsets,
+  toggleWriteInlineFormatOnRange,
+} from "@/lib/bbcode/write-editor-normalize";
+import {
   preserveWindowScroll,
   restoreScrollPosition,
 } from "@/lib/autoResizeField";
@@ -596,34 +604,17 @@ function applyWriteStyleForSelection(
   updates: Partial<{ color: string; fontSize: number }>
 ) {
   preserveWindowScroll(() => {
-    const fragment = range.extractContents();
-    const holder = document.createElement("div");
-    holder.appendChild(fragment);
+    const span = applyWriteRunToRange(range, {
+      ...(updates.color !== undefined ? { color: updates.color } : {}),
+      ...(updates.fontSize !== undefined ? { fontSize: updates.fontSize } : {}),
+    });
 
-    if (updates.color) {
-      stripStylePropertyFromHolder(holder, "color");
+    if (!span) {
+      return;
     }
-    if (updates.fontSize) {
-      stripStylePropertyFromHolder(holder, "fontSize");
-    }
-    removeTypingOnlySpansFromHolder(holder);
-
-    const wrapper = document.createElement("span");
-    if (updates.color) {
-      wrapper.style.color = updates.color;
-    }
-    if (updates.fontSize) {
-      wrapper.style.fontSize = `${updates.fontSize}px`;
-    }
-
-    while (holder.firstChild) {
-      wrapper.appendChild(holder.firstChild);
-    }
-
-    range.insertNode(wrapper);
 
     const nextRange = document.createRange();
-    nextRange.selectNodeContents(wrapper);
+    nextRange.selectNodeContents(span);
     selection.removeAllRanges();
     selection.addRange(nextRange);
   });
@@ -1515,9 +1506,26 @@ export function BBCodeEditor({
   }
 
   function syncValueFromWrite() {
-    const html = writeEditorRef.current?.innerHTML ?? "";
+    const editor = writeEditorRef.current;
+    const savedOffsets = editor ? getWriteSelectionOffsets(editor) : null;
+    const didNormalize = Boolean(editor && editorNeedsNormalize(editor));
+
+    if (editor && didNormalize) {
+      normalizeWriteEditorHtml(editor);
+    }
+
+    const html = editor?.innerHTML ?? "";
     const bbcode = htmlToBbcode(html);
     emitChange(bbcode);
+
+    if (editor && savedOffsets && didNormalize) {
+      restoreWriteSelectionOffsets(
+        editor,
+        savedOffsets.start,
+        savedOffsets.end
+      );
+    }
+
     syncWriteEditorHeight();
     updateSelectedImageOverlay();
     updateWriteMentionState();
@@ -1826,6 +1834,7 @@ export function BBCodeEditor({
       return;
     }
 
+    const savedOffsets = getWriteSelectionOffsets(editor);
     const editorHeightBefore = editor.offsetHeight;
 
     preserveWindowScroll(() => {
@@ -1849,6 +1858,14 @@ export function BBCodeEditor({
     });
 
     syncValueFromWrite();
+
+    if (savedOffsets) {
+      restoreWriteSelectionOffsets(
+        editor,
+        savedOffsets.start,
+        savedOffsets.end
+      );
+    }
 
     const editorHeightAfter = editor.offsetHeight;
     const heightDelta = editorHeightAfter - editorHeightBefore;
@@ -1908,6 +1925,7 @@ export function BBCodeEditor({
       return;
     }
 
+    const savedOffsets = getWriteSelectionOffsets(editor);
     const editorHeightBefore = editor.offsetHeight;
 
     preserveWindowScroll(() => {
@@ -1924,6 +1942,14 @@ export function BBCodeEditor({
     });
 
     syncValueFromWrite();
+
+    if (savedOffsets) {
+      restoreWriteSelectionOffsets(
+        editor,
+        savedOffsets.start,
+        savedOffsets.end
+      );
+    }
 
     const editorHeightAfter = editor.offsetHeight;
     const heightDelta = editorHeightAfter - editorHeightBefore;
@@ -2141,17 +2167,42 @@ export function BBCodeEditor({
 
     const editor = writeEditorRef.current;
     const selection = window.getSelection();
-    if (!editor || !selection) {
+    if (!editor || !selection || selection.rangeCount === 0) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) {
       return;
     }
 
     const detected = getWriteFormatStateFromEditor(editor, selection);
     const selectionKey = getWriteSelectionKey(editor, selection);
     const isActive = getShownFormatState(detected, formatKey);
+    const savedOffsets = getWriteSelectionOffsets(editor);
+    const enable = !isActive;
+    const wasCollapsed = range.collapsed;
 
-    document.execCommand(WRITE_COMMANDS[formatKey], false);
+    preserveWindowScroll(() => {
+      if (!wasCollapsed) {
+        toggleWriteInlineFormatOnRange(range, formatKey, enable);
+      } else {
+        document.execCommand(WRITE_COMMANDS[formatKey], false);
+        normalizeWriteEditorHtml(editor);
+      }
+    });
+
     syncValueFromWrite();
-    applyFormatOverride(formatKey, !isActive, selectionKey);
+
+    if (savedOffsets) {
+      restoreWriteSelectionOffsets(
+        editor,
+        savedOffsets.start,
+        savedOffsets.end
+      );
+    }
+
+    applyFormatOverride(formatKey, enable, selectionKey);
   }
 
   function openLinkModal() {
@@ -2605,6 +2656,7 @@ export function BBCodeEditor({
               suppressContentEditableWarning
               role="textbox"
               aria-multiline="true"
+              dir="ltr"
               aria-label={placeholder ?? "Write your message"}
               data-placeholder={placeholder}
               onInput={syncValueFromWrite}

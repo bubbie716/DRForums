@@ -255,6 +255,16 @@ select.form-field:disabled {
   text-underline-offset: 2px;
 }
 
+.bbcode-content a.profile-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.bbcode-content a.profile-link:hover {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
 .bbcode-content a:hover {
   color: var(--color-accent-hover);
 }
@@ -353,6 +363,13 @@ select.form-field:disabled {
   margin: 1rem 0;
   border: 0;
   border-top: 1px solid var(--color-border);
+}
+
+.bbcode-write-editor u,
+.bbcode-write-editor s,
+.bbcode-write-editor strike,
+.bbcode-write-editor del {
+  text-decoration-color: currentColor;
 }
 
 .bbcode-write-editor {

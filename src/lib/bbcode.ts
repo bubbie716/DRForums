@@ -13,6 +13,53 @@ const IMG_PATTERN = /\[img(?:=(\d+))?\]([\s\S]*?)\[\/img\]/gi;
 const HR_PATTERN = /\[hr\]/gi;
 const INLINE_TAG_PATTERN = /\[(\/?)(b|i|u|s|color|size)(?:=([^\]]*))?\]/gi;
 
+const STRAY_HTML_TAG_LITERAL_PATTERN =
+  /<\/?(?:b|i|u|s|strike|del|strong|em)\b[^>]*>/gi;
+
+function stripStrayHtmlTagLiterals(text: string): string {
+  return text.replace(STRAY_HTML_TAG_LITERAL_PATTERN, "");
+}
+
+function repairLegacyFormattedBbcode(bbcode: string): string {
+  let result = stripStrayHtmlTagLiterals(bbcode);
+
+  for (let pass = 0; pass < 8; pass += 1) {
+    const before = result;
+
+    result = result.replace(
+      /\[color=([^\]]+)\]\[i\]\[b\]\[u\]\[s\]\[color=\1\]\[size=(\d+)\]\[i\]\[b\]\[u\]\[s\]/gi,
+      "[color=$1][size=$2][i][b][u][s]"
+    );
+    result = result.replace(
+      /\[size=(\d+)\]\[color=([^\]]+)\]\[size=\1\]\[i\]\[b\]\[u\]\[s\]/gi,
+      "[size=$1][color=$2][i][b][u][s]"
+    );
+    result = result.replace(
+      /\[color=([^\]]+)\]\[size=(\d+)\]\[color=\1\]/gi,
+      "[color=$1][size=$2]"
+    );
+    result = result.replace(
+      /(@[\w]+)(\[\/s\]\[\/u\]\[\/b\]\[\/i\]\[\/size\]\[\/color\])\[\/s\]\[\/u\]\[\/b\]\[\/i\](\[\/color\])/gi,
+      "$1$2$3"
+    );
+    result = result.replace(/\[\/color\]\[\/color\]/gi, "[/color]");
+    result = result.replace(/\[\/size\]\[\/size\]/gi, "[/size]");
+
+    if (result === before) {
+      break;
+    }
+  }
+
+  return result;
+}
+
+function stripStrayParsedHtmlArtifacts(html: string): string {
+  return html.replace(
+    /&lt;\/?(?:s|u|strike|del|b|i|strong|em)\b[^&]*&gt;/gi,
+    ""
+  );
+}
+
 function normalizeQuoteUsername(raw: string | undefined): string | null {
   const cleaned = (raw ?? "")
     .replace(/\s*said:\s*$/i, "")
@@ -463,8 +510,8 @@ export function parseBBCode(input: string): string {
     return "";
   }
 
-  const html = parseToHtml(input);
-  return sanitizeBBCodeHtml(html);
+  const html = parseToHtml(repairLegacyFormattedBbcode(input));
+  return stripStrayParsedHtmlArtifacts(sanitizeBBCodeHtml(html));
 }
 
 export function sanitizeBBCodeHtml(html: string): string {
@@ -842,15 +889,6 @@ export function bbcodeHtmlForWriteEditor(bbcode: string): string {
 }
 
 function serializeStyleSpan(element: HTMLElement): string {
-  const decoration =
-    element.style.textDecorationLine || element.style.textDecoration || "";
-  if (decoration.includes("underline")) {
-    return `[u]${serializeElementChildren(element)}[/u]`;
-  }
-  if (decoration.includes("line-through")) {
-    return `[s]${serializeElementChildren(element)}[/s]`;
-  }
-
   let color = element.style.color;
   let fontSize = element.style.fontSize;
   let children = serializeElementChildren(element);
@@ -876,18 +914,49 @@ function serializeStyleSpan(element: HTMLElement): string {
     return "";
   }
 
-  let result = children;
-  if (fontSize) {
-    const size = Number.parseInt(fontSize, 10);
-    if (Number.isFinite(size)) {
-      result = `[size=${size}]${result}[/size]`;
-    }
+  let result = visibleChildren;
+
+  const decoration =
+    element.style.textDecorationLine || element.style.textDecoration || "";
+  if (decoration.includes("line-through")) {
+    result = `[s]${result}[/s]`;
   }
-  if (color) {
-    const normalizedColor = normalizeColorForBbcode(color);
-    if (normalizedColor) {
-      result = `[color=${normalizedColor}]${result}[/color]`;
-    }
+  if (decoration.includes("underline")) {
+    result = `[u]${result}[/u]`;
+  }
+
+  const fontWeight = element.style.fontWeight;
+  if (fontWeight === "bold" || Number.parseInt(fontWeight, 10) >= 600) {
+    result = `[b]${result}[/b]`;
+  }
+  if (element.style.fontStyle === "italic") {
+    result = `[i]${result}[/i]`;
+  }
+
+  const parsedFontSize = Number.parseInt(fontSize, 10);
+  if (Number.isFinite(parsedFontSize) && parsedFontSize > 0) {
+    result = `[size=${parsedFontSize}]${result}[/size]`;
+  }
+
+  const normalizedColor = normalizeColorForBbcode(color);
+  if (normalizedColor) {
+    result = `[color=${normalizedColor}]${result}[/color]`;
+  }
+
+  return result;
+}
+
+function serializeDecorationElement(
+  element: HTMLElement,
+  tag: "u" | "s"
+): string {
+  const children = serializeElementChildren(element);
+  const open = tag === "u" ? "[u]" : "[s]";
+  const close = tag === "u" ? "[/u]" : "[/s]";
+  let result = `${open}${children}${close}`;
+  const normalizedColor = normalizeColorForBbcode(element.style.color);
+  if (normalizedColor) {
+    result = `[color=${normalizedColor}]${result}[/color]`;
   }
   return result;
 }
@@ -932,7 +1001,10 @@ function serializeNodes(nodes: NodeListOf<ChildNode> | ChildNode[]): string {
 
 function serializeNode(node: ChildNode): string {
   if (node.nodeType === Node.TEXT_NODE) {
-    return node.textContent ?? "";
+    return (node.textContent ?? "").replace(
+      /<\/?(?:b|i|u|s|strike|del|strong|em)\b[^>]*>/gi,
+      ""
+    );
   }
 
   if (node.nodeType !== Node.ELEMENT_NODE) {
@@ -951,11 +1023,11 @@ function serializeNode(node: ChildNode): string {
     case "i":
       return `[i]${children}[/i]`;
     case "u":
-      return `[u]${children}[/u]`;
+      return serializeDecorationElement(element, "u");
     case "s":
     case "strike":
     case "del":
-      return `[s]${children}[/s]`;
+      return serializeDecorationElement(element, "s");
     case "br":
       return "\n";
     case "a": {
@@ -1061,6 +1133,47 @@ function serializeNode(node: ChildNode): string {
   }
 }
 
+function sanitizeHtmlContainerBeforeSerialize(root: HTMLElement): void {
+  const legacyTags = ["b", "strong", "i", "em", "u", "s", "strike", "del"];
+
+  for (let pass = 0; pass < 4; pass += 1) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const emptyTextNodes: Text[] = [];
+    let current = walker.nextNode();
+
+    while (current) {
+      const raw = current.textContent ?? "";
+      const cleaned = stripStrayHtmlTagLiterals(raw.replace(/\u200B/g, ""));
+
+      if (!cleaned) {
+        emptyTextNodes.push(current as Text);
+      } else if (cleaned !== raw.replace(/\u200B/g, "")) {
+        (current as Text).textContent = cleaned;
+      }
+
+      current = walker.nextNode();
+    }
+
+    for (const node of emptyTextNodes) {
+      node.remove();
+    }
+
+    for (const tagName of legacyTags) {
+      for (const element of Array.from(root.querySelectorAll(tagName))) {
+        const parent = element.parentNode;
+        if (!parent) {
+          continue;
+        }
+
+        while (element.firstChild) {
+          parent.insertBefore(element.firstChild, element);
+        }
+        parent.removeChild(element);
+      }
+    }
+  }
+}
+
 export function htmlToBbcode(html: string): string {
   if (typeof document === "undefined" || !html.trim()) {
     return "";
@@ -1069,12 +1182,15 @@ export function htmlToBbcode(html: string): string {
   const container = document.createElement("div");
   container.innerHTML = html;
   normalizeLegacyFontElements(container);
-  return normalizeStyledBbcode(
-    serializeNodes(container.childNodes)
-      .replace(/\u200B/g, "")
-      .replace(/\u00a0/g, " ")
-      .replace(/\n{3,}/g, "\n\n")
-      .trim()
+  sanitizeHtmlContainerBeforeSerialize(container);
+  return stripStrayHtmlTagLiterals(
+    normalizeStyledBbcode(
+      serializeNodes(container.childNodes)
+        .replace(/\u200B/g, "")
+        .replace(/\u00a0/g, " ")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+    )
   );
 }
 
